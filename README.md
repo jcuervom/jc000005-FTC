@@ -174,4 +174,9 @@ El workflow (`.github/workflows/deploy.yml`) ejecuta:
 
 © 2026 Jose Cuervo. **Todos los derechos reservados.**
 
-Este software es propiedad exclusiva de su autor. Queda **estrictamente prohibido** copiar, modificar, distribuir, sublicenciar o utilizar total o parcialmente este código sin autorización expresa por escrito del autor. Hecho con ❤️ en Colombia 🇨🇴
+Este software está disponible para uso público **únicamente** a través de la web oficial:
+🔗 [jcuervom.github.io/jc000005-TaxMil](https://jcuervom.github.io/jc000005-TaxMil/)
+
+Queda **prohibido** copiar, modificar, redistribuir, alojar o integrar este código en cualquier otro sitio o producto sin autorización expresa del autor. El código fuente es visible con fines de transparencia y referencia educativa únicamente.
+
+Hecho con ❤️ en Colombia 🇨🇴

@@ -2,9 +2,19 @@
   <!-- Header -->
   <header class="header">
     <div class="header-icon" aria-hidden="true">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2" y="4" width="20" height="16" rx="2"/>
-        <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M6 16h12"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="2" y="4" width="20" height="16" rx="2" />
+        <path
+          d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M6 16h12"
+        />
       </svg>
     </div>
     <h1>Calculadora <span class="highlight">4×1000</span></h1>
@@ -29,116 +39,229 @@
       />
       <span class="currency-suffix" aria-hidden="true">COP</span>
     </div>
-    <p id="input-help" class="sr-only">Ingresa el monto total de la transacción para calcular el impuesto 4 por mil</p>
+    <p id="input-help" class="sr-only">
+      Ingresa el monto total de la transacción para calcular el impuesto 4 por
+      mil
+    </p>
     @if (amount() > 0) {
-      <button class="clear-btn" (click)="clear()" aria-label="Limpiar monto ingresado">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-        Limpiar
-      </button>
+    <button
+      class="clear-btn"
+      (click)="clear()"
+      aria-label="Limpiar monto ingresado"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+      Limpiar
+    </button>
     }
   </section>
 
   <!-- Results -->
   @if (amount() > 0) {
-    <section class="results" aria-label="Resultados del cálculo" aria-live="polite">
-
-      <!-- Net Amount Card (Main) -->
-      <article class="result-card main-card">
-        <div class="card-header-row">
-          <div class="card-label">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            Puedes enviar
-          </div>
-          <button
-            class="copy-btn"
-            [class.copied]="copied()"
-            (click)="copyNetAmount()"
-            [attr.aria-label]="copied() ? 'Valor copiado' : 'Copiar valor neto al portapapeles'"
-          >
-            @if (copied()) {
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              <span>Copiado</span>
-            } @else {
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-              <span>Copiar</span>
-            }
-          </button>
-        </div>
-        <div class="card-value main-value" aria-label="Monto que puedes enviar">{{ formatCOP(netAmount()) }}</div>
-        <div class="card-description">Monto neto después del impuesto</div>
-      </article>
-
-      <!-- Tax Amount Card -->
-      <article class="result-card tax-card">
+  <section
+    class="results"
+    aria-label="Resultados del cálculo"
+    aria-live="polite"
+  >
+    <!-- Net Amount Card (Main) -->
+    <article class="result-card main-card">
+      <div class="card-header-row">
         <div class="card-label">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="20 6 9 17 4 12" />
           </svg>
-          Impuesto 4×1000
+          Puedes enviar
         </div>
-        <div class="card-value tax-value">{{ formatCOP(taxAmount()) }}</div>
-        <div class="card-description">
-          Retención del {{ taxPercentageOfTotal() | number:'1.2-2' }}% del total
-        </div>
-      </article>
+        <button
+          class="copy-btn"
+          [class.copied]="copied()"
+          (click)="copyNetAmount()"
+          [attr.aria-label]="copied() ? 'Valor copiado' : 'Copiar valor neto al portapapeles'"
+        >
+          @if (copied()) {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>Copiado</span>
+          } @else {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          <span>Copiar</span>
+          }
+        </button>
+      </div>
+      <div class="card-value main-value" aria-label="Monto que puedes enviar">
+        {{ formatCOP(netAmount()) }}
+      </div>
+      <div class="card-description">Monto neto después del impuesto</div>
+    </article>
 
-      <!-- Breakdown Bar -->
-      <article class="breakdown" aria-label="Desglose de la transacción">
-        <div class="breakdown-header">Desglose de tu transacción</div>
-        <div class="breakdown-bar" role="img" aria-label="Barra de proporción: envío vs impuesto">
-          <div class="bar-net" [style.width.%]="(netAmount() / amount()) * 100"></div>
-          <div class="bar-tax" [style.width.%]="(taxAmount() / amount()) * 100"></div>
-        </div>
-        <div class="breakdown-legend">
-          <div class="legend-item">
-            <span class="legend-dot net-dot" aria-hidden="true"></span>
-            <span>Envío: {{ formatCOP(netAmount()) }}</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-dot tax-dot" aria-hidden="true"></span>
-            <span>Impuesto: {{ formatCOP(taxAmount()) }}</span>
-          </div>
-        </div>
+    <!-- Tax Amount Card -->
+    <article class="result-card tax-card">
+      <div class="card-label">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+        Impuesto 4×1000
+      </div>
+      <div class="card-value tax-value">{{ formatCOP(taxAmount()) }}</div>
+      <div class="card-description">
+        Retención del {{ taxPercentageOfTotal() | number:'1.2-2' }}% del total
+      </div>
+    </article>
 
-        <div class="breakdown-summary">
-          <div class="summary-row">
-            <span>Monto ingresado</span>
-            <span>{{ formatCOP(amount()) }}</span>
-          </div>
-          <div class="summary-row">
-            <span>(-) Impuesto 4×1000</span>
-            <span class="tax-color">- {{ formatCOP(taxAmount()) }}</span>
-          </div>
-          <div class="summary-row total-row">
-            <span>= Puedes enviar</span>
-            <span class="net-color">{{ formatCOP(netAmount()) }}</span>
-          </div>
+    <!-- Breakdown Bar -->
+    <article class="breakdown" aria-label="Desglose de la transacción">
+      <div class="breakdown-header">Desglose de tu transacción</div>
+      <div
+        class="breakdown-bar"
+        role="img"
+        aria-label="Barra de proporción: envío vs impuesto"
+      >
+        <div
+          class="bar-net"
+          [style.width.%]="(netAmount() / amount()) * 100"
+        ></div>
+        <div
+          class="bar-tax"
+          [style.width.%]="(taxAmount() / amount()) * 100"
+        ></div>
+      </div>
+      <div class="breakdown-legend">
+        <div class="legend-item">
+          <span class="legend-dot net-dot" aria-hidden="true"></span>
+          <span>Envío: {{ formatCOP(netAmount()) }}</span>
         </div>
-      </article>
+        <div class="legend-item">
+          <span class="legend-dot tax-dot" aria-hidden="true"></span>
+          <span>Impuesto: {{ formatCOP(taxAmount()) }}</span>
+        </div>
+      </div>
 
-    </section>
+      <div class="breakdown-summary">
+        <div class="summary-row">
+          <span>Monto ingresado</span>
+          <span>{{ formatCOP(amount()) }}</span>
+        </div>
+        <div class="summary-row">
+          <span>(-) Impuesto 4×1000</span>
+          <span class="tax-color">- {{ formatCOP(taxAmount()) }}</span>
+        </div>
+        <div class="summary-row total-row">
+          <span>= Puedes enviar</span>
+          <span class="net-color">{{ formatCOP(netAmount()) }}</span>
+        </div>
+      </div>
+    </article>
+  </section>
   }
 
   <!-- Info Footer -->
   <footer class="info-footer" role="note">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="12" y1="16" x2="12" y2="12"/>
-      <line x1="12" y1="8" x2="12.01" y2="8"/>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
     </svg>
     <span>
-      El <strong>GMF (4×1000)</strong> es un impuesto colombiano que grava las transacciones financieras.
-      Por cada $1.000 se cobran $4 de impuesto.
+      El <strong>GMF (4×1000)</strong> es un impuesto colombiano que grava las
+      transacciones financieras. Por cada $1.000 se cobran $4 de impuesto.
     </span>
   </footer>
+
+  <!-- Copyright -->
+  <p class="copyright">
+    © 2026 Jose Cuervo. Todos los derechos reservados.
+    <a
+      href="https://linkedin.com/in/j-cuervom"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Perfil de LinkedIn de Jose Cuervo"
+      class="linkedin-link"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
+        />
+      </svg>
+      LinkedIn
+    </a>
+  </p>
 </main>

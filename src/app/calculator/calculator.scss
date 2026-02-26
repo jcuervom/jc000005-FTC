@@ -475,3 +475,27 @@ $radius-sm: 10px;
     color: $accent-blue;
   }
 }
+
+// ─── Copyright ────────────────────────────────────────────
+.copyright {
+  text-align: center;
+  font-size: 0.75rem;
+  color: $text-muted;
+  margin: 0;
+  padding-top: 8px;
+  letter-spacing: 0.02em;
+
+  .linkedin-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: $text-secondary;
+    text-decoration: none;
+    margin-left: 6px;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #0a66c2;
+    }
+  }
+}

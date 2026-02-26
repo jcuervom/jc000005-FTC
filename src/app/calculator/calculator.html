@@ -1,0 +1,120 @@
+<div class="calculator-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="4" width="20" height="16" rx="2"/>
+        <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M6 16h12"/>
+      </svg>
+    </div>
+    <h1>Calculadora <span class="highlight">4×1000</span></h1>
+    <p class="subtitle">Calcula el impuesto GMF de tu transacción</p>
+  </div>
+
+  <!-- Input Section -->
+  <div class="input-section">
+    <label for="amount">Monto total a enviar</label>
+    <div class="input-wrapper">
+      <span class="currency-prefix">$</span>
+      <input
+        id="amount"
+        type="text"
+        inputmode="numeric"
+        placeholder="0"
+        [value]="amount() ? amount().toLocaleString('es-CO') : ''"
+        (input)="onInput($event)"
+        autocomplete="off"
+      />
+      <span class="currency-suffix">COP</span>
+    </div>
+    @if (amount() > 0) {
+      <button class="clear-btn" (click)="clear()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Limpiar
+      </button>
+    }
+  </div>
+
+  <!-- Results -->
+  @if (amount() > 0) {
+    <div class="results">
+
+      <!-- Net Amount Card (Main) -->
+      <div class="result-card main-card">
+        <div class="card-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Puedes enviar
+        </div>
+        <div class="card-value main-value">{{ formatCOP(netAmount()) }}</div>
+        <div class="card-description">Monto neto después del impuesto</div>
+      </div>
+
+      <!-- Tax Amount Card -->
+      <div class="result-card tax-card">
+        <div class="card-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          Impuesto 4×1000
+        </div>
+        <div class="card-value tax-value">{{ formatCOP(taxAmount()) }}</div>
+        <div class="card-description">
+          Retención del {{ taxPercentageOfTotal() | number:'1.2-2' }}% del total
+        </div>
+      </div>
+
+      <!-- Breakdown Bar -->
+      <div class="breakdown">
+        <div class="breakdown-header">Desglose de tu transacción</div>
+        <div class="breakdown-bar">
+          <div class="bar-net" [style.width.%]="(netAmount() / amount()) * 100"></div>
+          <div class="bar-tax" [style.width.%]="(taxAmount() / amount()) * 100"></div>
+        </div>
+        <div class="breakdown-legend">
+          <div class="legend-item">
+            <span class="legend-dot net-dot"></span>
+            <span>Envío: {{ formatCOP(netAmount()) }}</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot tax-dot"></span>
+            <span>Impuesto: {{ formatCOP(taxAmount()) }}</span>
+          </div>
+        </div>
+
+        <div class="breakdown-summary">
+          <div class="summary-row">
+            <span>Monto ingresado</span>
+            <span>{{ formatCOP(amount()) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>(-) Impuesto 4×1000</span>
+            <span class="tax-color">- {{ formatCOP(taxAmount()) }}</span>
+          </div>
+          <div class="summary-row total-row">
+            <span>= Puedes enviar</span>
+            <span class="net-color">{{ formatCOP(netAmount()) }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  }
+
+  <!-- Info Footer -->
+  <div class="info-footer">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="16" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+    <span>
+      El <strong>GMF (4×1000)</strong> es un impuesto colombiano que grava las transacciones financieras.
+      Por cada $1.000 se cobran $4 de impuesto.
+    </span>
+  </div>
+</div>

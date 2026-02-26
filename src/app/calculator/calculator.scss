@@ -1,0 +1,400 @@
+// ─── Variables ────────────────────────────────────────────
+$bg-gradient-start: #0f0c29;
+$bg-gradient-mid: #1a1a3e;
+$bg-gradient-end: #24243e;
+
+$card-bg: rgba(255, 255, 255, 0.04);
+$card-border: rgba(255, 255, 255, 0.08);
+
+$accent-green: #00e676;
+$accent-green-soft: rgba(0, 230, 118, 0.12);
+$accent-red: #ff5252;
+$accent-red-soft: rgba(255, 82, 82, 0.12);
+$accent-blue: #448aff;
+$accent-purple: #b388ff;
+
+$text-primary: #f5f5f5;
+$text-secondary: rgba(255, 255, 255, 0.6);
+$text-muted: rgba(255, 255, 255, 0.38);
+
+$radius-lg: 20px;
+$radius-md: 14px;
+$radius-sm: 10px;
+
+// ─── Host ─────────────────────────────────────────────────
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100dvh;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: $text-primary;
+  background: linear-gradient(160deg, $bg-gradient-start, $bg-gradient-mid 40%, $bg-gradient-end);
+}
+
+// ─── Container ────────────────────────────────────────────
+.calculator-container {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  @media (max-width: 480px) {
+    padding: 20px 16px 36px;
+    gap: 20px;
+  }
+}
+
+// ─── Header ───────────────────────────────────────────────
+.header {
+  text-align: center;
+  padding: 16px 0 8px;
+
+  .header-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    background: linear-gradient(135deg, $accent-blue, $accent-purple);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px rgba(68, 138, 255, 0.3);
+
+    svg {
+      width: 28px;
+      height: 28px;
+      color: white;
+    }
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+
+    .highlight {
+      background: linear-gradient(135deg, $accent-blue, $accent-purple);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+    color: $text-secondary;
+    margin: 0;
+  }
+}
+
+// ─── Input Section ────────────────────────────────────────
+.input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: $text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+    background: $card-bg;
+    border: 1.5px solid $card-border;
+    border-radius: $radius-md;
+    padding: 0 18px;
+    transition: all 0.25s ease;
+
+    &:focus-within {
+      border-color: $accent-blue;
+      box-shadow: 0 0 0 3px rgba(68, 138, 255, 0.15);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .currency-prefix {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: $text-muted;
+      margin-right: 4px;
+      user-select: none;
+    }
+
+    input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: $text-primary;
+      padding: 18px 0;
+      font-family: inherit;
+      letter-spacing: -0.01em;
+      min-width: 0;
+
+      &::placeholder {
+        color: $text-muted;
+      }
+    }
+
+    .currency-suffix {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: $text-muted;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-left: 8px;
+      user-select: none;
+      letter-spacing: 0.04em;
+    }
+  }
+
+  .clear-btn {
+    align-self: flex-end;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: $text-secondary;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-family: inherit;
+
+    &:hover {
+      color: $accent-red;
+      background: $accent-red-soft;
+    }
+  }
+}
+
+// ─── Results ──────────────────────────────────────────────
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-card {
+  padding: 22px 24px;
+  border-radius: $radius-lg;
+  border: 1.5px solid $card-border;
+
+  .card-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+
+  .card-value {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .card-description {
+    font-size: 0.8rem;
+    color: $text-muted;
+    margin-top: 8px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 18px 20px;
+
+    .card-value {
+      font-size: 1.65rem;
+    }
+  }
+}
+
+.main-card {
+  background: linear-gradient(135deg, rgba(0, 230, 118, 0.08), rgba(0, 230, 118, 0.02));
+  border-color: rgba(0, 230, 118, 0.2);
+
+  .card-label {
+    color: $accent-green;
+  }
+
+  .main-value {
+    color: $accent-green;
+  }
+}
+
+.tax-card {
+  background: linear-gradient(135deg, rgba(255, 82, 82, 0.08), rgba(255, 82, 82, 0.02));
+  border-color: rgba(255, 82, 82, 0.2);
+
+  .card-label {
+    color: $accent-red;
+  }
+
+  .tax-value {
+    color: $accent-red;
+  }
+}
+
+// ─── Breakdown ────────────────────────────────────────────
+.breakdown {
+  background: $card-bg;
+  border: 1.5px solid $card-border;
+  border-radius: $radius-lg;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .breakdown-header {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $text-secondary;
+  }
+
+  .breakdown-bar {
+    display: flex;
+    height: 12px;
+    border-radius: 99px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.04);
+
+    .bar-net {
+      background: linear-gradient(90deg, $accent-green, #33ff99);
+      border-radius: 99px 0 0 99px;
+      transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bar-tax {
+      background: linear-gradient(90deg, $accent-red, #ff8585);
+      border-radius: 0 99px 99px 0;
+      transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  }
+
+  .breakdown-legend {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: $text-secondary;
+
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+
+        &.net-dot {
+          background: $accent-green;
+        }
+
+        &.tax-dot {
+          background: $accent-red;
+        }
+      }
+    }
+
+    @media (max-width: 360px) {
+      flex-direction: column;
+      gap: 6px;
+    }
+  }
+
+  .breakdown-summary {
+    border-top: 1px solid $card-border;
+    padding-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      color: $text-secondary;
+
+      &.total-row {
+        padding-top: 10px;
+        border-top: 1px dashed rgba(255, 255, 255, 0.1);
+        font-weight: 700;
+        font-size: 1rem;
+        color: $text-primary;
+      }
+    }
+
+    .tax-color {
+      color: $accent-red;
+      font-weight: 600;
+    }
+
+    .net-color {
+      color: $accent-green;
+      font-weight: 700;
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 18px 20px;
+  }
+}
+
+// ─── Info Footer ──────────────────────────────────────────
+.info-footer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: rgba(68, 138, 255, 0.06);
+  border: 1px solid rgba(68, 138, 255, 0.15);
+  border-radius: $radius-sm;
+  padding: 14px 18px;
+  font-size: 0.8rem;
+  color: $text-secondary;
+  line-height: 1.5;
+
+  svg {
+    flex-shrink: 0;
+    color: $accent-blue;
+    margin-top: 2px;
+  }
+
+  strong {
+    color: $accent-blue;
+  }
+}

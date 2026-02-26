@@ -34,7 +34,7 @@ jobs:
         run: npm ci
 
       - name: Build Angular app
-        run: npx ng build --base-href /jc000005-FTC/
+        run: npx ng build --base-href /jc000005-TaxMil/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -42,7 +42,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/jc000005-FTC/browser
+          path: dist/jc000005-TaxMil/browser
 
   deploy:
     environment:

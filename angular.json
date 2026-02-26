@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "jc000005-FTC": {
+    "jc000005-TaxMil": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -78,10 +78,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "jc000005-FTC:build:production"
+              "buildTarget": "jc000005-TaxMil:build:production"
             },
             "development": {
-              "buildTarget": "jc000005-FTC:build:development"
+              "buildTarget": "jc000005-TaxMil:build:development"
             }
           },
           "defaultConfiguration": "development"

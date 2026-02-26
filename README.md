@@ -1,59 +1,173 @@
-# Jc000005FTC
+<div align="center">
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.0.0.
+# 💰 TaxMil
 
-## Development server
+**Calculadora del impuesto 4×1000 (GMF) de Colombia**
 
-To start a local development server, run:
+[![Angular](https://img.shields.io/badge/Angular-20-DD0031?logo=angular&logoColor=white)](https://angular.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Deploy](https://img.shields.io/badge/GitHub%20Pages-deployed-success?logo=github)](https://jcuervom.github.io/jc000005-TaxMil/)
+[![Tests](https://img.shields.io/badge/tests-53%20passed-brightgreen)]()
 
-```bash
-ng serve
+[**Ver Demo en Vivo →**](https://jcuervom.github.io/jc000005-TaxMil/)
+
+</div>
+
+---
+
+## 📋 Descripción
+
+**TaxMil** es una calculadora web para el **Gravamen a los Movimientos Financieros (GMF)**, conocido como el **4×1000**, un impuesto colombiano que grava las transacciones financieras.
+
+Ingresa el monto total de tu transacción y TaxMil te muestra al instante:
+- ✅ **Cuánto puedes enviar** (monto neto después del impuesto)
+- 💸 **Cuánto se cobra de impuesto** (4×1000)
+- 📊 **Desglose visual** con barra de proporción y resumen detallado
+
+> **Ejemplo:** Si ingresas **$270.000**, TaxMil calcula que puedes enviar **$268.924** y el impuesto es **$1.076**.
+
+---
+
+## ✨ Características
+
+| Característica | Detalle |
+|---|---|
+| ⚡ **Cálculo en tiempo real** | Resultados instantáneos mientras escribes |
+| 📋 **Copiar al portapapeles** | Un clic para copiar el monto neto |
+| 📱 **100% Responsive** | Diseñado mobile-first, funciona en cualquier dispositivo |
+| 🎨 **Diseño moderno** | UI dark theme con gradientes y animaciones suaves |
+| ♿ **Accesible** | HTML semántico, ARIA labels, navegación por teclado |
+| 🚀 **Zoneless** | Angular signals sin Zone.js para máximo rendimiento |
+| 🧪 **53 tests** | Cobertura completa: lógica, DOM, accesibilidad y edge cases |
+| 🌐 **Deploy automático** | CI/CD con GitHub Actions a GitHub Pages |
+
+---
+
+## 🧮 Fórmula
+
+El impuesto **4×1000** se calcula así:
+
+```
+Impuesto = Monto × 0.004 / 1.004
+Monto Neto = Monto - Impuesto
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+De esta forma, `Monto Neto + Impuesto = Monto Total ingresado`.
 
-## Code scaffolding
+---
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## 🛠️ Tech Stack
 
-```bash
-ng generate component component-name
-```
+- **Framework:** Angular 20 (standalone components, signals)
+- **Lenguaje:** TypeScript 5.8
+- **Estilos:** SCSS con variables y responsive design
+- **Testing:** Jasmine + Karma (53 specs)
+- **Deploy:** GitHub Actions → GitHub Pages
+- **Fuente:** Inter (Google Fonts)
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+---
 
-```bash
-ng generate --help
-```
+## 🚀 Inicio Rápido
 
-## Building
+### Prerrequisitos
 
-To build the project run:
+- Node.js 22+
+- npm 10+
 
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+### Instalación
 
 ```bash
-ng test
+# Clonar el repositorio
+git clone https://github.com/jcuervom/jc000005-TaxMil.git
+cd jc000005-TaxMil
+
+# Instalar dependencias
+npm install
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+### Desarrollo
 
 ```bash
-ng e2e
+# Iniciar servidor de desarrollo
+npm start
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Abre [http://localhost:4200](http://localhost:4200) en tu navegador.
 
-## Additional Resources
+### Build de producción
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+```bash
+npm run build
+```
+
+Los archivos se generan en `dist/jc000005-TaxMil/browser/`.
+
+### Tests
+
+```bash
+# Ejecutar tests
+npm test
+
+# Tests en modo headless (CI)
+npx ng test --no-watch --browsers=ChromeHeadless
+```
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+src/
+├── index.html                    # HTML principal
+├── styles.scss                   # Estilos globales
+├── main.ts                       # Bootstrap de la app
+└── app/
+    ├── app.ts                    # Componente raíz
+    ├── app.html                  # Template raíz
+    ├── app.config.ts             # Configuración (zoneless)
+    └── calculator/
+        ├── calculator.ts         # Lógica: signals, computed, clipboard
+        ├── calculator.html       # Template: semántico + accesible
+        ├── calculator.scss       # Estilos: responsive + dark theme
+        └── calculator.spec.ts    # 53 unit tests
+```
+
+---
+
+## 🧪 Cobertura de Tests
+
+| Categoría | Tests | Descripción |
+|---|---|---|
+| Signals & Computed | 15 | `amount`, `taxAmount`, `netAmount`, `taxPercentageOfTotal` |
+| Métodos | 12 | `formatCOP`, `onInput`, `clear`, `copyNetAmount` |
+| DOM / Template | 10 | Renderizado condicional, botón copiar, breakdown |
+| Accesibilidad | 8 | Elementos semánticos, ARIA attributes |
+| Edge Cases | 8 | Montos mínimos, tasa exacta, invariantes |
+
+---
+
+## 🌐 Deploy
+
+El proyecto se despliega automáticamente a **GitHub Pages** con cada push a `main`.
+
+**URL:** [https://jcuervom.github.io/jc000005-TaxMil/](https://jcuervom.github.io/jc000005-TaxMil/)
+
+El workflow (`.github/workflows/deploy.yml`) ejecuta:
+1. `npm ci` — Instala dependencias
+2. `ng build --base-href /jc000005-TaxMil/` — Build de producción
+3. Deploy a GitHub Pages vía `actions/deploy-pages`
+
+---
+
+## 👤 Autor
+
+**Jose Cuervo**
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-j--cuervom-0A66C2?logo=linkedin&logoColor=white)](https://linkedin.com/in/j-cuervom)
+[![GitHub](https://img.shields.io/badge/GitHub-jcuervom-181717?logo=github&logoColor=white)](https://github.com/jcuervom)
+
+---
+
+## 📄 Licencia
+
+Este proyecto es de código abierto. Hecho con ❤️ en Colombia 🇨🇴

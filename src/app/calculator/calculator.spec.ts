@@ -211,7 +211,10 @@ describe('Calculator', () => {
   describe('copyNetAmount', () => {
     it('should not copy when amount is 0', async () => {
       component.rawInput.set('');
-      const clipboardSpy = spyOn(navigator.clipboard, 'writeText').and.returnValue(Promise.resolve());
+      const clipboardSpy = spyOn(
+        navigator.clipboard,
+        'writeText',
+      ).and.returnValue(Promise.resolve());
 
       await component.copyNetAmount();
       expect(clipboardSpy).not.toHaveBeenCalled();
@@ -221,7 +224,10 @@ describe('Calculator', () => {
     it('should copy net amount to clipboard', async () => {
       component.rawInput.set('270000');
       const netValue = component.netAmount();
-      const clipboardSpy = spyOn(navigator.clipboard, 'writeText').and.returnValue(Promise.resolve());
+      const clipboardSpy = spyOn(
+        navigator.clipboard,
+        'writeText',
+      ).and.returnValue(Promise.resolve());
 
       await component.copyNetAmount();
       expect(clipboardSpy).toHaveBeenCalledWith(netValue.toString());
@@ -230,7 +236,9 @@ describe('Calculator', () => {
 
     it('should reset copied state after 2 seconds', async () => {
       component.rawInput.set('270000');
-      spyOn(navigator.clipboard, 'writeText').and.returnValue(Promise.resolve());
+      spyOn(navigator.clipboard, 'writeText').and.returnValue(
+        Promise.resolve(),
+      );
       jasmine.clock().install();
 
       await component.copyNetAmount();
@@ -294,7 +302,9 @@ describe('Calculator', () => {
 
     it('should show "Copiado" text after copying', async () => {
       component.rawInput.set('270000');
-      spyOn(navigator.clipboard, 'writeText').and.returnValue(Promise.resolve());
+      spyOn(navigator.clipboard, 'writeText').and.returnValue(
+        Promise.resolve(),
+      );
 
       await component.copyNetAmount();
       fixture.detectChanges();

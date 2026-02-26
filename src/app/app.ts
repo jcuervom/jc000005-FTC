@@ -5,6 +5,6 @@ import { Calculator } from './calculator/calculator';
   selector: 'app-root',
   imports: [Calculator],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
 export class App {}

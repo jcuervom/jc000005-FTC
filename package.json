@@ -1,12 +1,11 @@
 {
   "name": "taxmil",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "wacht": "npm run watch",
     "test": "ng test"
   },
   "private": true,

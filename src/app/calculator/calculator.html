@@ -17,259 +17,342 @@
       </svg>
     </div>
     <h1><span class="highlight">TaxMil</span> — Calculadora 4×1000</h1>
-    <p class="subtitle">Cálculo ejecutivo de GMF con exención legal limitada</p>
+    <p class="subtitle">
+      Simulador estratégico de GMF: modo total o meta neta, con exención legal
+      y desglose inmediato.
+    </p>
 
     <div class="header-meta" role="note">
-      <span class="meta-pill">Art. 879 E.T.</span>
-      <span class="meta-pill">Tope: 350 UVT/mes</span>
-      <span class="meta-pill">UVT ref. 2026</span>
+      @for (pill of dashboardPills(); track pill.id) {
+      <span
+        class="meta-pill"
+        [class.meta-pill--cyan]="pill.tone === 'cyan'"
+        [class.meta-pill--mint]="pill.tone === 'mint'"
+      >
+        <small>{{ pill.label }}</small>
+        <strong>{{ pill.value }}</strong>
+      </span>
+      }
     </div>
   </header>
 
-  <section class="policy-strip" role="note">
-    <strong>Exención vigente:</strong>
-    <span>hasta {{ formatCOP(EXEMPT_LIMIT_COP) }} mensuales (350 UVT).</span>
-  </section>
-
-  <section class="input-section" aria-label="Ingreso de monto">
-    <label for="amount">Monto total a enviar</label>
-
-    <div class="input-wrapper">
-      <span class="currency-prefix" aria-hidden="true">$</span>
-      <input
-        id="amount"
-        type="text"
-        inputmode="numeric"
-        placeholder="0"
-        aria-label="Monto en pesos colombianos"
-        aria-describedby="input-help"
-        [value]="amount() ? amount().toLocaleString('es-CO') : ''"
-        (input)="onInput($event)"
-        autocomplete="off"
-      />
-      <span class="currency-suffix" aria-hidden="true">COP</span>
-    </div>
-
-    <p id="input-help" class="sr-only">
-      Ingresa el monto total de la transacción para calcular el impuesto 4 por
-      mil
-    </p>
-
-    <div class="exempt-toggle-row">
-      <label class="switch-label" for="exempt-toggle"
-        >Aplicar cuenta exenta (límite legal)</label
-      >
-      <label class="switch" aria-label="Cuenta exenta">
-        <input
-          id="exempt-toggle"
-          type="checkbox"
-          [checked]="isExempt()"
-          (change)="onExemptToggle($event)"
-        />
-        <span class="switch-track"></span>
-      </label>
-    </div>
-
-    @if (isExempt()) {
-    <p class="exempt-hint">
-      La exención cubre hasta {{ formatCOP(EXEMPT_LIMIT_COP) }} por mes. El
-      excedente sí paga 4×1000.
-    </p>
-    }
-
-    @if (amount() > 0) {
-    <button
-      class="clear-btn"
-      (click)="clear()"
-      aria-label="Limpiar monto ingresado"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <line x1="18" y1="6" x2="6" y2="18" />
-        <line x1="6" y1="6" x2="18" y2="18" />
-      </svg>
-      Limpiar
-    </button>
-    }
-  </section>
-
-  @if (amount() > 0) {
-  <section
-    class="results"
-    aria-label="Resultados del cálculo"
-    aria-live="polite"
-  >
-    <article class="result-card main-card">
-      <div class="card-header-row">
-        <div class="card-label">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+  <section class="workspace-grid">
+    <div class="workspace-col workspace-col--left">
+      <section class="mode-section" aria-label="Modo de cálculo">
+        <p class="mode-title">Modo de cálculo</p>
+        <div class="mode-switch" role="tablist" aria-label="Selector de modo">
+          @for (mode of modeOptions; track mode.id) {
+          <button
+            type="button"
+            class="mode-chip"
+            [class.active]="calculationMode() === mode.id"
+            [attr.aria-selected]="calculationMode() === mode.id"
+            (click)="onModeChange(mode.id)"
           >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          Puedes enviar
-        </div>
-        <button
-          class="copy-btn"
-          [class.copied]="copied()"
-          (click)="copyNetAmount()"
-          [attr.aria-label]="copied() ? 'Valor copiado' : 'Copiar valor neto al portapapeles'"
-        >
-          @if (copied()) {
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <span>Copiado</span>
-          } @else {
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-          </svg>
-          <span>Copiar</span>
+            {{ mode.label }}
+          </button>
           }
-        </button>
-      </div>
-      <div class="card-value main-value" aria-label="Monto que puedes enviar">
-        {{ formatCOP(netAmount()) }}
-      </div>
-      <div class="card-description">
-        Monto neto después del impuesto aplicable
-      </div>
-    </article>
+        </div>
+      </section>
 
-    <article class="result-card tax-card">
-      <div class="card-label">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+      <section class="policy-strip" role="note">
+        <strong>Exención vigente:</strong>
+        <span>hasta {{ formatCOP(EXEMPT_LIMIT_COP) }} mensuales (350 UVT).</span>
+      </section>
+
+      <section class="input-section" aria-label="Ingreso de monto">
+        <label for="amount">{{ amountInputLabel() }}</label>
+
+        <div class="input-wrapper">
+          <span class="currency-prefix" aria-hidden="true">$</span>
+          <input
+            id="amount"
+            type="text"
+            inputmode="numeric"
+            placeholder="0"
+            aria-label="Monto en pesos colombianos"
+            aria-describedby="input-help"
+            [value]="amount() ? amount().toLocaleString('es-CO') : ''"
+            (input)="onInput($event)"
+            autocomplete="off"
+          />
+          <span class="currency-suffix" aria-hidden="true">COP</span>
+        </div>
+
+        <p id="input-help" class="sr-only">
+          Ingresa el monto para calcular el impuesto 4 por mil o la transferencia
+          necesaria en modo meta neta.
+        </p>
+
+        <div class="quick-amounts" aria-label="Montos rápidos">
+          @for (quickAmount of quickAmounts; track quickAmount) {
+          <button
+            type="button"
+            class="quick-chip"
+            (click)="applyQuickAmount(quickAmount)"
+          >
+            {{ formatCOP(quickAmount) }}
+          </button>
+          }
+        </div>
+
+        <div class="exempt-toggle-row">
+          <label class="switch-label" for="exempt-toggle"
+            >Aplicar cuenta exenta (límite legal)</label
+          >
+          <label class="switch" aria-label="Cuenta exenta">
+            <input
+              id="exempt-toggle"
+              type="checkbox"
+              [checked]="isExempt()"
+              (change)="onExemptToggle($event)"
+            />
+            <span class="switch-track"></span>
+          </label>
+        </div>
+
+        @if (isExempt()) {
+        <p class="exempt-hint">
+          La exención cubre hasta {{ formatCOP(EXEMPT_LIMIT_COP) }} por mes. El
+          excedente sí paga 4×1000.
+        </p>
+        }
+
+        @if (amount() > 0) {
+        <button
+          class="clear-btn"
+          (click)="clear()"
+          aria-label="Limpiar monto ingresado"
         >
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-        </svg>
-        Impuesto 4×1000
-      </div>
-      <div class="card-value tax-value">{{ formatCOP(taxAmount()) }}</div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+          Limpiar
+        </button>
+        }
+      </section>
 
-      @if (isExempt()) {
-      @if (!exemptionExceeded()) {
-      <div class="card-description tax-ok">
-        Exención aplicada: no se causa GMF dentro del tope mensual.
-      </div>
+      @if (calculationMode() === 'desiredNet' && amount() > 0 && goalOptions().length > 0)
+      {
+      <section class="goal-board" aria-label="Opciones por tramo">
+        <div class="goal-title">Opciones por tramo</div>
+        <div class="goal-grid">
+          @for (option of goalOptions(); track option.id) {
+          <article class="goal-card">
+            <p class="goal-card-title">{{ option.title }}</p>
+            <p class="goal-card-value">{{ formatCOP(option.total) }}</p>
+            <p class="goal-card-hint">Llega {{ formatCOP(option.extraNet) }} extra</p>
+          </article>
+          }
+        </div>
+      </section>
+      }
+    </div>
+
+    <div class="workspace-col workspace-col--right">
+      @if (amount() > 0) {
+      <section
+        class="results"
+        aria-label="Resultados del cálculo"
+        aria-live="polite"
+      >
+        <article class="result-card main-card">
+          <div class="card-header-row">
+            <div class="card-label">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {{ primaryLabel() }}
+            </div>
+            <button
+              class="copy-btn"
+              [class.copied]="copied()"
+              (click)="copyNetAmount()"
+              [attr.aria-label]="copied() ? 'Valor copiado' : 'Copiar valor al portapapeles'"
+            >
+              @if (copied()) {
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>Copiado</span>
+              } @else {
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              <span>Copiar</span>
+              }
+            </button>
+          </div>
+          <div class="card-value main-value" aria-label="Monto principal calculado">
+            {{ formatCOP(primaryAmount()) }}
+          </div>
+          <div class="card-description">
+            {{ primaryDescription() }}
+          </div>
+
+          <div class="impact-meter" aria-label="Impacto fiscal">
+            <div class="impact-header">
+              <span>Impacto fiscal</span>
+              <strong>{{ taxPercentageOfTotal() | number:'1.2-2' }}%</strong>
+            </div>
+            <div class="impact-track">
+              <div
+                class="impact-fill"
+                [style.width.%]="amount() > 0 ? (taxAmount() / amount()) * 100 : 0"
+              ></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="result-card tax-card">
+          <div class="card-label">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            Impuesto 4×1000
+          </div>
+          <div class="card-value tax-value">{{ formatCOP(taxAmount()) }}</div>
+
+          @if (isExempt()) {
+          @if (!exemptionExceeded()) {
+          <div class="card-description tax-ok">
+            Exención aplicada: no se causa GMF dentro del tope mensual.
+          </div>
+          } @else {
+          <div class="card-description">
+            Exención usada: {{ formatCOP(exemptCoveredAmount()) }}. Exceso
+            gravado: {{ formatCOP(taxableExcessAmount()) }}.
+          </div>
+          }
+          } @else {
+          <div class="card-description">
+            Retención del {{ taxPercentageOfTotal() | number:'1.2-2' }}% del total
+          </div>
+          }
+        </article>
+
+        <article class="breakdown" aria-label="Desglose de la transacción">
+          <div class="breakdown-header">Desglose de tu transacción</div>
+          <div
+            class="breakdown-bar"
+            aria-label="Barra de proporción: envío vs impuesto"
+          >
+            <div
+              class="bar-net"
+              [style.width.%]="amount() > 0 ? (netAmount() / amount()) * 100 : 0"
+            ></div>
+            <div
+              class="bar-tax"
+              [style.width.%]="amount() > 0 ? (taxAmount() / amount()) * 100 : 0"
+            ></div>
+          </div>
+
+          <div class="breakdown-legend">
+            <div class="legend-item">
+              <span class="legend-dot net-dot" aria-hidden="true"></span>
+              <span>Envío: {{ formatCOP(netAmount()) }}</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot tax-dot" aria-hidden="true"></span>
+              <span>Impuesto: {{ formatCOP(taxAmount()) }}</span>
+            </div>
+          </div>
+
+          @if (isExempt()) {
+          <div class="breakdown-legend extra-legend">
+            <div class="legend-item">
+              <span class="legend-dot exempt-dot" aria-hidden="true"></span>
+              <span>Exento: {{ formatCOP(exemptCoveredAmount()) }}</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot excess-dot" aria-hidden="true"></span>
+              <span>Exceso gravado: {{ formatCOP(taxableExcessAmount()) }}</span>
+            </div>
+          </div>
+          }
+
+          <div class="breakdown-summary">
+            @for (row of summaryRows(); track row.id) {
+            <div class="summary-row" [class.total-row]="row.total">
+              <span>{{ row.label }}</span>
+              <span
+                [class.tax-color]="row.tone === 'tax'"
+                [class.net-color]="row.tone === 'net'"
+                >{{ row.value }}</span
+              >
+            </div>
+            }
+          </div>
+        </article>
+      </section>
       } @else {
-      <div class="card-description">
-        Exención usada: {{ formatCOP(exemptCoveredAmount()) }}. Exceso gravado:
-        {{ formatCOP(taxableExcessAmount()) }}.
-      </div>
+      <section class="empty-state" aria-live="polite">
+        <h2>Simula en segundos</h2>
+        <p>
+          Ingresa un monto o usa un preset para obtener inmediatamente el neto,
+          el impuesto y el desglose fiscal.
+        </p>
+      </section>
       }
-      } @else {
-      <div class="card-description">
-        Retención del {{ taxPercentageOfTotal() | number:'1.2-2' }}% del total
-      </div>
-      }
-    </article>
-
-    <article class="breakdown" aria-label="Desglose de la transacción">
-      <div class="breakdown-header">Desglose de tu transacción</div>
-      <div class="breakdown-bar" aria-label="Barra de proporción: envío vs impuesto">
-        <div
-          class="bar-net"
-          [style.width.%]="(netAmount() / amount()) * 100"
-        ></div>
-        <div
-          class="bar-tax"
-          [style.width.%]="(taxAmount() / amount()) * 100"
-        ></div>
-      </div>
-
-      <div class="breakdown-legend">
-        <div class="legend-item">
-          <span class="legend-dot net-dot" aria-hidden="true"></span>
-          <span>Envío: {{ formatCOP(netAmount()) }}</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-dot tax-dot" aria-hidden="true"></span>
-          <span>Impuesto: {{ formatCOP(taxAmount()) }}</span>
-        </div>
-      </div>
-
-      @if (isExempt()) {
-      <div class="breakdown-legend extra-legend">
-        <div class="legend-item">
-          <span class="legend-dot exempt-dot" aria-hidden="true"></span>
-          <span>Exento: {{ formatCOP(exemptCoveredAmount()) }}</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-dot excess-dot" aria-hidden="true"></span>
-          <span>Exceso gravado: {{ formatCOP(taxableExcessAmount()) }}</span>
-        </div>
-      </div>
-      }
-
-      <div class="breakdown-summary">
-        <div class="summary-row">
-          <span>Monto ingresado</span>
-          <span>{{ formatCOP(amount()) }}</span>
-        </div>
-        <div class="summary-row">
-          <span>{{ isExempt() ? '(-) GMF sobre excedente' : '(-) Impuesto 4×1000' }}</span>
-          <span class="tax-color">- {{ formatCOP(taxAmount()) }}</span>
-        </div>
-        <div class="summary-row total-row">
-          <span>= Puedes enviar</span>
-          <span class="net-color">{{ formatCOP(netAmount()) }}</span>
-        </div>
-      </div>
-    </article>
+    </div>
   </section>
-  }
 
   <footer class="info-footer" role="note">
     <svg

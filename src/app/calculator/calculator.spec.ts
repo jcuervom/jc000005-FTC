@@ -100,6 +100,28 @@ describe('Calculator', () => {
     });
   });
 
+  describe('desired net mode', () => {
+    it('should calculate minimum transfer for desired net amount', () => {
+      component.calculationMode.set('desiredNet');
+      component.rawInput.set('1000000');
+
+      expect(component.totalAmount()).toBe(1004000);
+      expect(component.taxAmount()).toBe(4000);
+      expect(component.netAmount()).toBe(1000000);
+      expect(component.primaryAmount()).toBe(component.totalAmount());
+    });
+
+    it('should keep desired net untaxed while exempt is under legal cap', () => {
+      component.calculationMode.set('desiredNet');
+      component.isExempt.set(true);
+      component.rawInput.set((component.EXEMPT_LIMIT_COP - 2000).toString());
+
+      expect(component.taxAmount()).toBe(0);
+      expect(component.totalAmount()).toBe(component.amount());
+      expect(component.exemptionExceeded()).toBe(false);
+    });
+  });
+
   describe('netAmount computation', () => {
     it('should return 0 when amount is 0', () => {
       component.rawInput.set('');

@@ -1,5 +1,4 @@
 <main class="calculator-container" role="main">
-  <!-- Header -->
   <header class="header">
     <div class="header-icon" aria-hidden="true">
       <svg
@@ -18,12 +17,23 @@
       </svg>
     </div>
     <h1><span class="highlight">TaxMil</span> — Calculadora 4×1000</h1>
-    <p class="subtitle">Calcula el impuesto GMF de tu transacción</p>
+    <p class="subtitle">Cálculo ejecutivo de GMF con exención legal limitada</p>
+
+    <div class="header-meta" role="note">
+      <span class="meta-pill">Art. 879 E.T.</span>
+      <span class="meta-pill">Tope: 350 UVT/mes</span>
+      <span class="meta-pill">UVT ref. 2026</span>
+    </div>
   </header>
 
-  <!-- Input Section -->
+  <section class="policy-strip" role="note">
+    <strong>Exención vigente:</strong>
+    <span>hasta {{ formatCOP(EXEMPT_LIMIT_COP) }} mensuales (350 UVT).</span>
+  </section>
+
   <section class="input-section" aria-label="Ingreso de monto">
     <label for="amount">Monto total a enviar</label>
+
     <div class="input-wrapper">
       <span class="currency-prefix" aria-hidden="true">$</span>
       <input
@@ -39,10 +49,34 @@
       />
       <span class="currency-suffix" aria-hidden="true">COP</span>
     </div>
+
     <p id="input-help" class="sr-only">
       Ingresa el monto total de la transacción para calcular el impuesto 4 por
       mil
     </p>
+
+    <div class="exempt-toggle-row">
+      <label class="switch-label" for="exempt-toggle"
+        >Aplicar cuenta exenta (límite legal)</label
+      >
+      <label class="switch" aria-label="Cuenta exenta">
+        <input
+          id="exempt-toggle"
+          type="checkbox"
+          [checked]="isExempt()"
+          (change)="onExemptToggle($event)"
+        />
+        <span class="switch-track"></span>
+      </label>
+    </div>
+
+    @if (isExempt()) {
+    <p class="exempt-hint">
+      La exención cubre hasta {{ formatCOP(EXEMPT_LIMIT_COP) }} por mes. El
+      excedente sí paga 4×1000.
+    </p>
+    }
+
     @if (amount() > 0) {
     <button
       class="clear-btn"
@@ -69,14 +103,12 @@
     }
   </section>
 
-  <!-- Results -->
   @if (amount() > 0) {
   <section
     class="results"
     aria-label="Resultados del cálculo"
     aria-live="polite"
   >
-    <!-- Net Amount Card (Main) -->
     <article class="result-card main-card">
       <div class="card-header-row">
         <div class="card-label">
@@ -141,10 +173,11 @@
       <div class="card-value main-value" aria-label="Monto que puedes enviar">
         {{ formatCOP(netAmount()) }}
       </div>
-      <div class="card-description">Monto neto después del impuesto</div>
+      <div class="card-description">
+        Monto neto después del impuesto aplicable
+      </div>
     </article>
 
-    <!-- Tax Amount Card -->
     <article class="result-card tax-card">
       <div class="card-label">
         <svg
@@ -164,19 +197,28 @@
         Impuesto 4×1000
       </div>
       <div class="card-value tax-value">{{ formatCOP(taxAmount()) }}</div>
+
+      @if (isExempt()) {
+      @if (!exemptionExceeded()) {
+      <div class="card-description tax-ok">
+        Exención aplicada: no se causa GMF dentro del tope mensual.
+      </div>
+      } @else {
+      <div class="card-description">
+        Exención usada: {{ formatCOP(exemptCoveredAmount()) }}. Exceso gravado:
+        {{ formatCOP(taxableExcessAmount()) }}.
+      </div>
+      }
+      } @else {
       <div class="card-description">
         Retención del {{ taxPercentageOfTotal() | number:'1.2-2' }}% del total
       </div>
+      }
     </article>
 
-    <!-- Breakdown Bar -->
     <article class="breakdown" aria-label="Desglose de la transacción">
       <div class="breakdown-header">Desglose de tu transacción</div>
-      <div
-        class="breakdown-bar"
-        role="img"
-        aria-label="Barra de proporción: envío vs impuesto"
-      >
+      <div class="breakdown-bar" aria-label="Barra de proporción: envío vs impuesto">
         <div
           class="bar-net"
           [style.width.%]="(netAmount() / amount()) * 100"
@@ -186,6 +228,7 @@
           [style.width.%]="(taxAmount() / amount()) * 100"
         ></div>
       </div>
+
       <div class="breakdown-legend">
         <div class="legend-item">
           <span class="legend-dot net-dot" aria-hidden="true"></span>
@@ -197,13 +240,26 @@
         </div>
       </div>
 
+      @if (isExempt()) {
+      <div class="breakdown-legend extra-legend">
+        <div class="legend-item">
+          <span class="legend-dot exempt-dot" aria-hidden="true"></span>
+          <span>Exento: {{ formatCOP(exemptCoveredAmount()) }}</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot excess-dot" aria-hidden="true"></span>
+          <span>Exceso gravado: {{ formatCOP(taxableExcessAmount()) }}</span>
+        </div>
+      </div>
+      }
+
       <div class="breakdown-summary">
         <div class="summary-row">
           <span>Monto ingresado</span>
           <span>{{ formatCOP(amount()) }}</span>
         </div>
         <div class="summary-row">
-          <span>(-) Impuesto 4×1000</span>
+          <span>{{ isExempt() ? '(-) GMF sobre excedente' : '(-) Impuesto 4×1000' }}</span>
           <span class="tax-color">- {{ formatCOP(taxAmount()) }}</span>
         </div>
         <div class="summary-row total-row">
@@ -215,7 +271,6 @@
   </section>
   }
 
-  <!-- Info Footer -->
   <footer class="info-footer" role="note">
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -234,12 +289,12 @@
       <line x1="12" y1="8" x2="12.01" y2="8" />
     </svg>
     <span>
-      El <strong>GMF (4×1000)</strong> es un impuesto colombiano que grava las
-      transacciones financieras. Por cada $1.000 se cobran $4 de impuesto.
+      El <strong>GMF (4×1000)</strong> grava movimientos financieros en Colombia.
+      La exención para cuenta aplica hasta <strong>350 UVT mensuales</strong>
+      (Art. 879 E.T.) y el excedente sí genera impuesto.
     </span>
   </footer>
 
-  <!-- Copyright -->
   <p class="copyright">
     © 2026 Jose Cuervo. Todos los derechos reservados.
     <a

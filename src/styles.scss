@@ -1,5 +1,5 @@
 /* Global styles */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 *,
 *::before,
@@ -12,6 +12,7 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
 }
 
 body {
@@ -19,5 +20,8 @@ body {
   padding: 0;
   min-height: 100dvh;
   overflow-x: hidden;
-  background: #0f0c29;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(66, 212, 255, 0.2), transparent 28%),
+    radial-gradient(circle at 100% 100%, rgba(71, 223, 146, 0.16), transparent 25%),
+    #050d1f;
 }

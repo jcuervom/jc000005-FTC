@@ -79,6 +79,25 @@ describe('Calculator', () => {
       // tax = 1000 * 0.004 / 1.004 = 3.98... => rounded to 4
       expect(component.taxAmount()).toBe(4);
     });
+
+    it('should not charge tax when exempt and under monthly limit', () => {
+      component.isExempt.set(true);
+      component.rawInput.set((component.EXEMPT_LIMIT_COP - 1000).toString());
+
+      expect(component.taxAmount()).toBe(0);
+      expect(component.exemptionExceeded()).toBe(false);
+    });
+
+    it('should charge tax only on excess when exempt and over monthly limit', () => {
+      component.isExempt.set(true);
+      component.rawInput.set((component.EXEMPT_LIMIT_COP + 1_004_000).toString());
+
+      const expectedTax = Math.round((1_004_000 * component.TAX_RATE) / (1 + component.TAX_RATE));
+      expect(component.taxAmount()).toBe(expectedTax);
+      expect(component.exemptionExceeded()).toBe(true);
+      expect(component.taxableExcessAmount()).toBeGreaterThan(0);
+      expect(component.exemptCoveredAmount()).toBe(component.EXEMPT_LIMIT_COP);
+    });
   });
 
   describe('netAmount computation', () => {
@@ -136,13 +155,13 @@ describe('Calculator', () => {
       const result = component.formatCOP(270000);
       expect(result).toContain('$');
       // Should contain some form of 270 and 000
-      expect(result.replace(/\D/g, '')).toBe('270000');
+      expect(result.replaceAll(/\D/g, '')).toBe('270000');
     });
 
     it('should format 1000000', () => {
       const result = component.formatCOP(1000000);
       expect(result).toContain('$');
-      expect(result.replace(/\D/g, '')).toBe('1000000');
+      expect(result.replaceAll(/\D/g, '')).toBe('1000000');
     });
   });
 
@@ -164,7 +183,7 @@ describe('Calculator', () => {
       component.onInput(event);
       // The input value should be formatted (not raw digits)
       expect(inputEl.value).not.toBe('1000000');
-      expect(inputEl.value.replace(/\D/g, '')).toBe('1000000');
+      expect(inputEl.value.replaceAll(/\D/g, '')).toBe('1000000');
     });
 
     it('should handle empty input', () => {
@@ -184,6 +203,27 @@ describe('Calculator', () => {
       const event = { target: inputEl } as unknown as Event;
 
       component.onInput(event);
+      expect(component.copied()).toBe(false);
+    });
+  });
+
+  describe('onExemptToggle', () => {
+    it('should enable exempt mode when checkbox is checked', () => {
+      const inputEl = document.createElement('input');
+      inputEl.checked = true;
+      const event = { target: inputEl } as unknown as Event;
+
+      component.onExemptToggle(event);
+      expect(component.isExempt()).toBe(true);
+    });
+
+    it('should reset copied state when toggling exempt mode', () => {
+      component.copied.set(true);
+      const inputEl = document.createElement('input');
+      inputEl.checked = true;
+      const event = { target: inputEl } as unknown as Event;
+
+      component.onExemptToggle(event);
       expect(component.copied()).toBe(false);
     });
   });
@@ -266,6 +306,13 @@ describe('Calculator', () => {
       expect(input.getAttribute('inputmode')).toBe('numeric');
     });
 
+    it('should render exempt toggle control', () => {
+      const el: HTMLElement = fixture.nativeElement;
+      const toggle = el.querySelector('input#exempt-toggle') as HTMLInputElement;
+      expect(toggle).toBeTruthy();
+      expect(toggle.type).toBe('checkbox');
+    });
+
     it('should not show results when amount is 0', () => {
       const el: HTMLElement = fixture.nativeElement;
       expect(el.querySelector('.results')).toBeNull();
@@ -345,6 +392,14 @@ describe('Calculator', () => {
       const el: HTMLElement = fixture.nativeElement;
       expect(el.querySelector('.info-footer')).toBeTruthy();
       expect(el.querySelector('.info-footer')?.textContent).toContain('GMF');
+    });
+
+    it('should show exempt hint when exempt mode is enabled', () => {
+      component.isExempt.set(true);
+      fixture.detectChanges();
+
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.exempt-hint')).toBeTruthy();
     });
   });
 

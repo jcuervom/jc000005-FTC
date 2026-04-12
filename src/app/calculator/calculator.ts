@@ -10,19 +10,36 @@ import { DecimalPipe } from '@angular/common';
 })
 export class Calculator {
   readonly TAX_RATE = 4 / 1000; // 4x1000
+  readonly EXEMPT_LIMIT_UVT = 350;
+  readonly UVT_VALUE_COP = 52_374; // Referencia UVT 2026
+  readonly EXEMPT_LIMIT_COP = Math.round(
+    this.EXEMPT_LIMIT_UVT * this.UVT_VALUE_COP,
+  );
 
   rawInput = signal('');
   copied = signal(false);
+  isExempt = signal(false);
 
   amount = computed(() => {
-    const cleaned = this.rawInput().replace(/\D/g, '');
+    const cleaned = this.rawInput().replaceAll(/\D/g, '');
     return cleaned ? Number(cleaned) : 0;
   });
 
   taxAmount = computed(() => {
     const a = this.amount();
     if (a <= 0) return 0;
-    return Math.round((a * this.TAX_RATE) / (1 + this.TAX_RATE));
+
+    if (!this.isExempt()) {
+      return Math.round((a * this.TAX_RATE) / (1 + this.TAX_RATE));
+    }
+
+    if (a <= this.EXEMPT_LIMIT_COP) {
+      return 0;
+    }
+
+    // Bajo exencion limitada, el GMF se calcula solo sobre el excedente.
+    const taxableGross = a - this.EXEMPT_LIMIT_COP;
+    return Math.round((taxableGross * this.TAX_RATE) / (1 + this.TAX_RATE));
   });
 
   netAmount = computed(() => {
@@ -37,9 +54,23 @@ export class Calculator {
     return (this.taxAmount() / a) * 100;
   });
 
+  exemptCoveredAmount = computed(() => {
+    if (!this.isExempt()) return 0;
+    return Math.min(this.netAmount(), this.EXEMPT_LIMIT_COP);
+  });
+
+  taxableExcessAmount = computed(() => {
+    if (!this.isExempt()) return this.netAmount();
+    return Math.max(0, this.netAmount() - this.EXEMPT_LIMIT_COP);
+  });
+
+  exemptionExceeded = computed(() => {
+    return this.isExempt() && this.taxableExcessAmount() > 0;
+  });
+
   onInput(event: Event) {
     const input = event.target as HTMLInputElement;
-    const raw = input.value.replace(/\D/g, '');
+    const raw = input.value.replaceAll(/\D/g, '');
     this.rawInput.set(raw);
 
     if (raw) {
@@ -50,6 +81,12 @@ export class Calculator {
     }
 
     // Reset copied state on new input
+    this.copied.set(false);
+  }
+
+  onExemptToggle(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.isExempt.set(input.checked);
     this.copied.set(false);
   }
 
@@ -67,17 +104,7 @@ export class Calculator {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 2000);
     } catch {
-      // Fallback for older browsers / insecure contexts
-      const textarea = document.createElement('textarea');
-      textarea.value = value.toString();
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 2000);
+      this.copied.set(false);
     }
   }
 

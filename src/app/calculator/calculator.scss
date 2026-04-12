@@ -1,21 +1,23 @@
-$bg-ink-900: #050d1f;
-$bg-ink-800: #0b1b38;
-$bg-ink-700: #112a52;
+$bg-deep: #041018;
+$bg-mid: #0b2030;
+$bg-soft: #14334a;
 
-$text-100: #f3f9ff;
-$text-300: #b8c8de;
-$text-500: #7b92b0;
+$text-strong: #eff7ff;
+$text-soft: #b9c9da;
+$text-muted: #7f95aa;
 
-$card-bg: rgba(7, 24, 52, 0.58);
-$card-border: rgba(152, 196, 255, 0.2);
+$mint: #38dba1;
+$mint-soft: #99f5cd;
+$cyan: #2bc9ff;
+$coral: #ff6f59;
+$amber: #ffbe54;
 
-$accent-cyan: #42d4ff;
-$accent-green: #47df92;
-$accent-red: #ff6d6d;
-$accent-amber: #ffb04f;
+$card-bg: rgba(6, 20, 33, 0.66);
+$card-border: rgba(168, 205, 241, 0.22);
 
-$radius-xl: 24px;
-$radius-lg: 18px;
+$radius-2xl: 26px;
+$radius-xl: 20px;
+$radius-lg: 16px;
 $radius-md: 12px;
 
 .sr-only {
@@ -33,79 +35,98 @@ $radius-md: 12px;
 :host {
   display: block;
   min-height: 100dvh;
-  color: $text-100;
+  color: $text-strong;
   font-family:
-    "Space Grotesk",
-    "IBM Plex Sans",
+    "Sora",
+    "Manrope",
     "Segoe UI",
     sans-serif;
   background:
-    radial-gradient(circle at 8% 12%, rgba(66, 212, 255, 0.22), transparent 34%),
-    radial-gradient(circle at 92% 86%, rgba(71, 223, 146, 0.2), transparent 30%),
-    linear-gradient(160deg, $bg-ink-900, $bg-ink-800 55%, $bg-ink-700);
+    radial-gradient(circle at 18% 4%, rgba(43, 201, 255, 0.24), transparent 34%),
+    radial-gradient(circle at 92% 82%, rgba(56, 219, 161, 0.2), transparent 34%),
+    linear-gradient(156deg, $bg-deep, $bg-mid 56%, $bg-soft);
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
+    opacity: 0.33;
+  }
 
   *:focus-visible {
-    outline: 2px solid $accent-cyan;
+    outline: 2px solid $cyan;
     outline-offset: 2px;
   }
 }
 
 .calculator-container {
-  width: min(680px, 100%);
+  width: min(720px, 100%);
   margin: 0 auto;
   padding: 34px 18px 44px;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  position: relative;
+  z-index: 1;
 }
 
 .header {
   text-align: center;
-  padding: 10px 4px;
+  padding: 4px 2px;
 
   .header-icon {
-    width: 62px;
-    height: 62px;
+    width: 64px;
+    height: 64px;
     margin: 0 auto 14px;
-    border-radius: 18px;
+    border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border: 1px solid rgba(43, 201, 255, 0.42);
     background:
-      linear-gradient(140deg, rgba(66, 212, 255, 0.24), rgba(66, 212, 255, 0.04)),
-      rgba(6, 19, 40, 0.9);
-    border: 1px solid rgba(66, 212, 255, 0.38);
-    box-shadow: 0 12px 30px rgba(66, 212, 255, 0.2);
+      linear-gradient(140deg, rgba(43, 201, 255, 0.2), rgba(43, 201, 255, 0.03)),
+      rgba(5, 18, 31, 0.9);
+    box-shadow:
+      0 14px 34px rgba(2, 13, 24, 0.55),
+      0 0 0 1px rgba(255, 255, 255, 0.06) inset;
 
     svg {
-      width: 29px;
-      height: 29px;
-      color: $accent-cyan;
+      width: 30px;
+      height: 30px;
+      color: $cyan;
     }
   }
 
   h1 {
     margin: 0;
-    font-size: clamp(1.45rem, 4.4vw, 2rem);
-    letter-spacing: -0.02em;
-    line-height: 1.15;
+    font-size: clamp(1.48rem, 4.2vw, 2.1rem);
+    letter-spacing: -0.03em;
+    line-height: 1.12;
     font-weight: 700;
 
     .highlight {
-      color: $accent-cyan;
-      text-shadow: 0 0 26px rgba(66, 212, 255, 0.28);
+      color: $cyan;
+      text-shadow: 0 0 30px rgba(43, 201, 255, 0.3);
     }
   }
 
   .subtitle {
-    margin: 8px 0 0;
-    color: $text-300;
+    margin: 8px auto 0;
+    max-width: 520px;
+    color: $text-soft;
     font-size: 0.92rem;
-    line-height: 1.35;
+    line-height: 1.45;
   }
 
   .header-meta {
-    margin-top: 12px;
+    margin-top: 13px;
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
@@ -113,11 +134,11 @@ $radius-md: 12px;
   }
 
   .meta-pill {
-    font-size: 0.72rem;
-    letter-spacing: 0.03em;
-    color: $text-100;
-    border: 1px solid rgba(184, 200, 222, 0.3);
-    background: rgba(8, 24, 49, 0.7);
+    font-size: 0.71rem;
+    letter-spacing: 0.06em;
+    color: $text-soft;
+    border: 1px solid rgba(168, 205, 241, 0.25);
+    background: rgba(8, 23, 38, 0.75);
     padding: 5px 9px;
     border-radius: 999px;
   }
@@ -125,57 +146,63 @@ $radius-md: 12px;
 
 .policy-strip {
   border-radius: $radius-md;
-  border: 1px solid rgba(66, 212, 255, 0.28);
-  background: rgba(66, 212, 255, 0.08);
-  color: $text-300;
+  border: 1px solid rgba(43, 201, 255, 0.3);
+  background:
+    linear-gradient(130deg, rgba(43, 201, 255, 0.16), rgba(43, 201, 255, 0.04)),
+    rgba(8, 24, 41, 0.62);
+  color: $text-soft;
   padding: 10px 14px;
-  font-size: 0.83rem;
-  line-height: 1.45;
+  font-size: 0.84rem;
+  line-height: 1.42;
 
   strong {
-    color: $accent-cyan;
+    color: $cyan;
   }
 }
 
 .input-section,
 .result-card,
 .breakdown {
-  border-radius: $radius-xl;
+  border-radius: $radius-2xl;
   border: 1px solid $card-border;
   background: $card-bg;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 20px 40px rgba(2, 12, 22, 0.44),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
 }
 
 .input-section {
-  padding: 18px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 
   > label {
-    font-size: 0.78rem;
-    letter-spacing: 0.07em;
-    color: $text-300;
+    font-size: 0.77rem;
+    letter-spacing: 0.12em;
+    color: $text-soft;
     text-transform: uppercase;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .input-wrapper {
     display: flex;
     align-items: center;
-    border-radius: $radius-lg;
-    border: 1px solid rgba(152, 196, 255, 0.25);
-    background: rgba(8, 25, 52, 0.75);
+    border-radius: $radius-xl;
+    border: 1px solid rgba(168, 205, 241, 0.24);
+    background: rgba(8, 24, 40, 0.84);
     padding: 0 14px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
     transition: border-color 0.2s ease;
 
     &:focus-within {
-      border-color: $accent-cyan;
+      border-color: rgba(43, 201, 255, 0.65);
     }
 
     .currency-prefix {
-      color: $text-500;
-      font-size: 1.3rem;
+      color: $text-muted;
+      font-size: 1.35rem;
       font-weight: 600;
     }
 
@@ -183,42 +210,42 @@ $radius-md: 12px;
       border: 0;
       outline: 0;
       background: transparent;
-      color: $text-100;
-      font-size: clamp(1.55rem, 5vw, 2rem);
+      color: $text-strong;
+      font-size: clamp(1.7rem, 5vw, 2.2rem);
       font-weight: 700;
       line-height: 1;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.03em;
       font-family: inherit;
       min-width: 0;
       flex: 1;
       padding: 16px 10px;
 
       &::placeholder {
-        color: $text-500;
+        color: $text-muted;
       }
     }
 
     .currency-suffix {
-      color: $text-300;
+      color: $text-soft;
       font-size: 0.72rem;
-      letter-spacing: 0.05em;
-      background: rgba(184, 200, 222, 0.14);
-      border: 1px solid rgba(184, 200, 222, 0.24);
-      border-radius: 8px;
+      letter-spacing: 0.06em;
+      background: rgba(185, 201, 218, 0.15);
+      border: 1px solid rgba(185, 201, 218, 0.26);
+      border-radius: 9px;
       padding: 4px 7px;
       font-weight: 700;
     }
   }
 
   .exempt-toggle-row {
-    margin-top: 3px;
+    margin-top: 2px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
+    gap: 12px;
 
     .switch-label {
-      color: $text-300;
+      color: $text-soft;
       font-size: 0.84rem;
       font-weight: 500;
       line-height: 1.35;
@@ -226,7 +253,7 @@ $radius-md: 12px;
 
     .switch {
       position: relative;
-      width: 50px;
+      width: 52px;
       height: 28px;
       display: inline-flex;
 
@@ -241,8 +268,8 @@ $radius-md: 12px;
         width: 100%;
         height: 100%;
         border-radius: 999px;
-        background: rgba(184, 200, 222, 0.3);
-        border: 1px solid rgba(184, 200, 222, 0.4);
+        background: rgba(185, 201, 218, 0.28);
+        border: 1px solid rgba(185, 201, 218, 0.32);
         position: relative;
         transition: all 0.2s ease;
 
@@ -255,28 +282,28 @@ $radius-md: 12px;
           height: 20px;
           border-radius: 50%;
           background: #fff;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
           transition: transform 0.2s ease;
         }
       }
 
       input:checked + .switch-track {
-        background: rgba(71, 223, 146, 0.3);
-        border-color: rgba(71, 223, 146, 0.8);
+        background: rgba(56, 219, 161, 0.33);
+        border-color: rgba(56, 219, 161, 0.78);
 
         &::after {
-          transform: translateX(21px);
+          transform: translateX(23px);
         }
       }
     }
   }
 
   .exempt-hint {
-    font-size: 0.78rem;
-    color: $text-300;
-    line-height: 1.4;
-    border-left: 2px solid rgba(66, 212, 255, 0.5);
-    padding-left: 8px;
+    font-size: 0.79rem;
+    color: $text-soft;
+    line-height: 1.45;
+    border-left: 2px solid rgba(43, 201, 255, 0.55);
+    padding-left: 9px;
   }
 
   .clear-btn {
@@ -284,17 +311,17 @@ $radius-md: 12px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: $text-300;
+    color: $text-soft;
     background: transparent;
     border: 0;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 0.78rem;
     cursor: pointer;
-    padding: 4px 8px;
+    padding: 5px 9px;
 
     &:hover {
-      color: $accent-red;
-      background: rgba(255, 109, 109, 0.12);
+      color: $coral;
+      background: rgba(255, 111, 89, 0.13);
     }
   }
 }
@@ -303,13 +330,13 @@ $radius-md: 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  animation: lift 0.32s ease;
+  animation: reveal 0.34s ease;
 }
 
-@keyframes lift {
+@keyframes reveal {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(12px);
   }
 
   to {
@@ -319,7 +346,7 @@ $radius-md: 12px;
 }
 
 .result-card {
-  padding: 18px;
+  padding: 20px;
 
   .card-header-row {
     display: flex;
@@ -332,61 +359,61 @@ $radius-md: 12px;
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    font-size: 0.78rem;
-    letter-spacing: 0.07em;
+    font-size: 0.77rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .card-value {
     margin-top: 10px;
-    font-size: clamp(1.72rem, 6vw, 2.3rem);
-    line-height: 1.05;
+    font-size: clamp(1.82rem, 6.6vw, 2.55rem);
+    line-height: 1.04;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
   }
 
   .card-description {
     margin-top: 8px;
-    color: $text-300;
+    color: $text-soft;
     font-size: 0.8rem;
-    line-height: 1.4;
+    line-height: 1.45;
   }
 
   .tax-ok {
-    color: $accent-green;
+    color: $mint;
   }
 }
 
 .main-card {
-  border-color: rgba(71, 223, 146, 0.34);
+  border-color: rgba(56, 219, 161, 0.35);
   background:
-    linear-gradient(140deg, rgba(71, 223, 146, 0.16), rgba(71, 223, 146, 0.04)),
+    linear-gradient(140deg, rgba(56, 219, 161, 0.18), rgba(56, 219, 161, 0.04)),
     $card-bg;
 
   .card-label,
   .main-value {
-    color: $accent-green;
+    color: $mint-soft;
   }
 }
 
 .tax-card {
-  border-color: rgba(255, 109, 109, 0.33);
+  border-color: rgba(255, 111, 89, 0.35);
   background:
-    linear-gradient(140deg, rgba(255, 109, 109, 0.16), rgba(255, 109, 109, 0.03)),
+    linear-gradient(140deg, rgba(255, 111, 89, 0.18), rgba(255, 111, 89, 0.03)),
     $card-bg;
 
   .card-label,
   .tax-value {
-    color: $accent-red;
+    color: #ff8e81;
   }
 }
 
 .copy-btn {
-  border: 1px solid rgba(71, 223, 146, 0.45);
-  background: rgba(71, 223, 146, 0.1);
-  color: $accent-green;
-  border-radius: 9px;
+  border: 1px solid rgba(56, 219, 161, 0.45);
+  background: rgba(56, 219, 161, 0.1);
+  color: $mint-soft;
+  border-radius: 10px;
   padding: 6px 10px;
   cursor: pointer;
   display: inline-flex;
@@ -397,39 +424,39 @@ $radius-md: 12px;
   font-family: inherit;
 
   &:hover {
-    background: rgba(71, 223, 146, 0.18);
+    background: rgba(56, 219, 161, 0.2);
   }
 
   &.copied {
-    background: rgba(71, 223, 146, 0.28);
+    background: rgba(56, 219, 161, 0.3);
   }
 }
 
 .breakdown {
-  padding: 18px;
+  padding: 20px;
 
   .breakdown-header {
-    color: $text-300;
-    letter-spacing: 0.06em;
+    color: $text-soft;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    font-size: 0.76rem;
-    font-weight: 600;
+    font-size: 0.75rem;
+    font-weight: 700;
   }
 
   .breakdown-bar {
     margin-top: 10px;
     height: 11px;
     border-radius: 999px;
-    background: rgba(184, 200, 222, 0.1);
+    background: rgba(185, 201, 218, 0.11);
     overflow: hidden;
     display: flex;
 
     .bar-net {
-      background: linear-gradient(90deg, $accent-green, #8cf4b9);
+      background: linear-gradient(90deg, $mint, #9ff5cf);
     }
 
     .bar-tax {
-      background: linear-gradient(90deg, $accent-red, #ff9595);
+      background: linear-gradient(90deg, $coral, #ffad9f);
     }
   }
 
@@ -444,7 +471,7 @@ $radius-md: 12px;
       display: inline-flex;
       align-items: center;
       gap: 7px;
-      color: $text-300;
+      color: $text-soft;
       font-size: 0.8rem;
     }
 
@@ -454,31 +481,31 @@ $radius-md: 12px;
       border-radius: 50%;
 
       &.net-dot {
-        background: $accent-green;
+        background: $mint;
       }
 
       &.tax-dot {
-        background: $accent-red;
+        background: $coral;
       }
 
       &.exempt-dot {
-        background: $accent-cyan;
+        background: $cyan;
       }
 
       &.excess-dot {
-        background: $accent-amber;
+        background: $amber;
       }
     }
 
     &.extra-legend {
-      border-top: 1px solid rgba(184, 200, 222, 0.16);
+      border-top: 1px solid rgba(185, 201, 218, 0.14);
       padding-top: 8px;
     }
   }
 
   .breakdown-summary {
     margin-top: 10px;
-    border-top: 1px solid rgba(184, 200, 222, 0.2);
+    border-top: 1px solid rgba(185, 201, 218, 0.2);
     padding-top: 11px;
     display: flex;
     flex-direction: column;
@@ -488,26 +515,26 @@ $radius-md: 12px;
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      font-size: 0.86rem;
-      color: $text-300;
+      font-size: 0.85rem;
+      color: $text-soft;
       line-height: 1.4;
 
       &.total-row {
         margin-top: 4px;
-        border-top: 1px dashed rgba(184, 200, 222, 0.24);
+        border-top: 1px dashed rgba(185, 201, 218, 0.22);
         padding-top: 10px;
         font-weight: 700;
-        color: $text-100;
+        color: $text-strong;
       }
     }
 
     .tax-color {
-      color: $accent-red;
+      color: #ff9789;
       font-weight: 700;
     }
 
     .net-color {
-      color: $accent-green;
+      color: $mint-soft;
       font-weight: 700;
     }
   }
@@ -515,24 +542,26 @@ $radius-md: 12px;
 
 .info-footer {
   border-radius: $radius-md;
-  border: 1px solid rgba(66, 212, 255, 0.28);
-  background: rgba(66, 212, 255, 0.08);
+  border: 1px solid rgba(43, 201, 255, 0.28);
+  background:
+    linear-gradient(130deg, rgba(43, 201, 255, 0.14), rgba(43, 201, 255, 0.03)),
+    rgba(8, 24, 41, 0.58);
   display: flex;
   gap: 10px;
   align-items: flex-start;
   padding: 12px 14px;
-  color: $text-300;
+  color: $text-soft;
   font-size: 0.8rem;
   line-height: 1.5;
 
   svg {
-    color: $accent-cyan;
+    color: $cyan;
     flex-shrink: 0;
     margin-top: 2px;
   }
 
   strong {
-    color: $accent-cyan;
+    color: $cyan;
   }
 }
 
@@ -540,7 +569,7 @@ $radius-md: 12px;
   margin: 0;
   text-align: center;
   font-size: 0.72rem;
-  color: $text-500;
+  color: $text-muted;
   line-height: 1.45;
 
   .linkedin-link {
@@ -548,29 +577,29 @@ $radius-md: 12px;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    color: $text-300;
+    color: $text-soft;
     text-decoration: none;
 
     &:hover {
-      color: $accent-cyan;
+      color: $cyan;
     }
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 560px) {
   .calculator-container {
-    padding: 22px 14px 30px;
+    padding: 22px 14px 32px;
   }
 
   .input-section,
   .result-card,
   .breakdown {
-    border-radius: $radius-lg;
-    padding: 14px;
+    border-radius: $radius-xl;
+    padding: 15px;
   }
 
   .header .header-icon {
-    width: 56px;
-    height: 56px;
+    width: 58px;
+    height: 58px;
   }
 }

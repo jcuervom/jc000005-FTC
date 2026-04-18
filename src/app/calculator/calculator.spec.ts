@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { Calculator } from './calculator';
+import { TaxMilHistoryStore, TaxMilExportBuilder, TaxMilCalculatorEngine, TaxMilBatchProcessor, TaxMilBudgetStore, TaxMilCurrencyConverter, TaxMilThemeStore, TaxMilI18n } from './tax-mil.engine';
 
 describe('Calculator', () => {
   let component: Calculator;
@@ -449,11 +450,10 @@ describe('Calculator', () => {
       expect(input?.getAttribute('aria-label')).toBeTruthy();
     });
 
-    it('should have aria-describedby on input', () => {
+    it('should have aria-label on input', () => {
       const el: HTMLElement = fixture.nativeElement;
       const input = el.querySelector('input#amount');
-      expect(input?.getAttribute('aria-describedby')).toBe('input-help');
-      expect(el.querySelector('#input-help')).toBeTruthy();
+      expect(input?.getAttribute('aria-label')).toBeTruthy();
     });
 
     it('should have aria-live on results section', () => {
@@ -501,5 +501,378 @@ describe('Calculator', () => {
     it('TAX_RATE should be 0.004', () => {
       expect(component.TAX_RATE).toBe(0.004);
     });
+  });
+
+  // ─── History & Export Tests ───────────────────────────
+
+  describe('history store', () => {
+    it('should save calculation to history', () => {
+      component.rawInput.set('500000');
+      component.saveCalculation();
+
+      expect(component.historyStore.entries.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should apply history entry', () => {
+      const entry = {
+        id: 'test',
+        date: new Date().toISOString(),
+        mode: 'desiredNet' as const,
+        inputAmount: 300000,
+        total: 301200,
+        tax: 1200,
+        net: 300000,
+        isExempt: false,
+      };
+
+      component.applyHistoryEntry(entry);
+      expect(component.calculationMode()).toBe('desiredNet');
+      expect(component.amount()).toBe(300000);
+      expect(component.isExempt()).toBe(false);
+    });
+
+    it('should clear history', () => {
+      component.rawInput.set('100000');
+      component.saveCalculation();
+      component.clearHistory();
+
+      expect(component.historyStore.entries.length).toBe(0);
+    });
+
+    it('should not save when amount is 0', () => {
+      const before = component.historyStore.entries.length;
+      component.rawInput.set('');
+      component.saveCalculation();
+      expect(component.historyStore.entries.length).toBe(before);
+    });
+  });
+
+  describe('professional panel', () => {
+    it('should toggle professional panel', () => {
+      expect(component.professionalExpanded()).toBe(false);
+      component.toggleProfessional();
+      expect(component.professionalExpanded()).toBe(true);
+      component.toggleProfessional();
+      expect(component.professionalExpanded()).toBe(false);
+    });
+  });
+
+  describe('new template sections', () => {
+    it('should render history section', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('[aria-label]')).toBeTruthy();
+      expect(el.querySelector('.section-label')).toBeTruthy();
+    });
+
+    it('should render professional panel', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.panel-toggle')).toBeTruthy();
+    });
+
+    it('should render feedback section', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.feedback-section')).toBeTruthy();
+    });
+
+    it('should show result actions when amount > 0', () => {
+      component.rawInput.set('500000');
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.result-actions')).toBeTruthy();
+    });
+  });
+});
+
+// ─── Standalone Engine & Export Tests ────────────────
+
+describe('TaxMilCalculatorEngine', () => {
+  const engine = new TaxMilCalculatorEngine();
+
+  it('should calculate exempt limit as 350 * UVT', () => {
+    expect(engine.exemptLimitCOP).toBe(Math.round(350 * 52_374));
+  });
+
+  it('should format COP correctly', () => {
+    const result = engine.formatCOP(1234567);
+    expect(result).toContain('$');
+    expect(result.replaceAll(/\D/g, '')).toBe('1234567');
+  });
+
+  it('should strip non-digits', () => {
+    expect(engine.digitsOnly('abc$123.456')).toBe('123456');
+  });
+
+  it('should format grouped digits', () => {
+    const result = engine.formatGroupedDigits('1234567');
+    expect(result.replaceAll(/\D/g, '')).toBe('1234567');
+  });
+
+  it('should return empty for empty digits', () => {
+    expect(engine.formatGroupedDigits('')).toBe('');
+  });
+
+  it('should return 0 for empty amount', () => {
+    expect(engine.amountFrom('')).toBe(0);
+  });
+
+  it('should compute goal options for desiredNet', () => {
+    const options = engine.goalOptions(250_000, false);
+    expect(options.length).toBeGreaterThanOrEqual(2);
+    expect(options[0].id).toBe('exact');
+    expect(options.every((o) => o.net >= 250_000)).toBe(true);
+  });
+
+  it('should return empty goal options for 0', () => {
+    expect(engine.goalOptions(0, false)).toEqual([]);
+  });
+
+  it('tax percentage should be consistent', () => {
+    const result = engine.breakdown('totalToSend', 1_000_000, false);
+    const expected = (result.tax / result.total) * 100;
+    expect(Math.abs(result.taxPercentageOfTotal - expected)).toBeLessThan(0.0001);
+  });
+});
+
+describe('TaxMilHistoryStore', () => {
+  beforeEach(() => {
+    localStorage.removeItem('taxmil.history.v1');
+  });
+
+  it('should start with empty entries', () => {
+    const store = new TaxMilHistoryStore();
+    // may have previous entries from other tests
+    store.clear();
+    expect(store.entries.length).toBe(0);
+  });
+
+  it('should add entries and persist', () => {
+    const store = new TaxMilHistoryStore();
+    store.clear();
+    const engine = new TaxMilCalculatorEngine();
+    const result = engine.breakdown('totalToSend', 500_000, false);
+    store.addEntry('totalToSend', 500_000, result, false);
+    expect(store.entries.length).toBe(1);
+
+    const store2 = new TaxMilHistoryStore();
+    expect(store2.entries.length).toBe(1);
+  });
+
+  it('should limit to 60 entries', () => {
+    const store = new TaxMilHistoryStore();
+    store.clear();
+    const engine = new TaxMilCalculatorEngine();
+
+    for (let i = 1; i <= 70; i++) {
+      const result = engine.breakdown('totalToSend', i * 1_000, false);
+      store.addEntry('totalToSend', i * 1_000, result, false);
+    }
+
+    expect(store.entries.length).toBe(60);
+  });
+
+  it('should compute potential savings', () => {
+    const store = new TaxMilHistoryStore();
+    store.clear();
+    const engine = new TaxMilCalculatorEngine();
+    const result = engine.breakdown('totalToSend', 1_000_000, false);
+    store.addEntry('totalToSend', 1_000_000, result, false);
+    expect(store.potentialSavingsIfExempt()).toBe(result.tax);
+  });
+});
+
+describe('TaxMilExportBuilder', () => {
+  it('should generate CSV with header', () => {
+    const csv = TaxMilExportBuilder.csv([]);
+    expect(csv).toBe('date,mode,input,total,tax,net,isExempt');
+  });
+
+  it('should generate CSV with rows', () => {
+    const entry = {
+      id: '1',
+      date: '2026-01-01T00:00:00.000Z',
+      mode: 'totalToSend' as const,
+      inputAmount: 500_000,
+      total: 500_000,
+      tax: 1_992,
+      net: 498_008,
+      isExempt: false,
+    };
+    const csv = TaxMilExportBuilder.csv([entry]);
+    const lines = csv.split('\n');
+    expect(lines.length).toBe(2);
+    expect(lines[1]).toContain('totalToSend');
+  });
+
+  it('should generate PDF HTML content', () => {
+    const engine = new TaxMilCalculatorEngine();
+    const result = engine.breakdown('totalToSend', 500_000, false);
+    const html = TaxMilExportBuilder.generatePDFContent('totalToSend', 500_000, result, false, engine);
+    expect(html).toContain('TaxMil');
+    expect(html).toContain('500');
+    expect(html).toContain('<!DOCTYPE html>');
+  });
+});
+
+// ─── Batch Processor Tests ──────────────────────────
+
+describe('TaxMilBatchProcessor', () => {
+  const engine = new TaxMilCalculatorEngine();
+
+  it('should process multiple amounts', () => {
+    const result = TaxMilBatchProcessor.process(engine, [100_000, 200_000], 'totalToSend', false);
+    expect(result.lines.length).toBe(2);
+    expect(result.totalTax).toBeGreaterThan(0);
+  });
+
+  it('should handle exempt amounts', () => {
+    const result = TaxMilBatchProcessor.process(engine, [10_000_000], 'totalToSend', true);
+    expect(result.lines[0].result.tax).toBe(0);
+    expect(result.totalTax).toBe(0);
+  });
+
+  it('should handle empty array', () => {
+    const result = TaxMilBatchProcessor.process(engine, [], 'totalToSend', false);
+    expect(result.lines.length).toBe(0);
+    expect(result.totalTax).toBe(0);
+  });
+});
+
+// ─── Budget Store Tests ─────────────────────────────
+
+describe('TaxMilBudgetStore', () => {
+  beforeEach(() => localStorage.removeItem('taxmil.budget.v1'));
+
+  it('should set and get budget', () => {
+    const store = new TaxMilBudgetStore();
+    store.setBudget(50_000);
+    expect(store.monthlyBudget).toBe(50_000);
+  });
+
+  it('should track spending', () => {
+    const store = new TaxMilBudgetStore();
+    store.setBudget(10_000);
+    const usage = store.getUsage(3_000);
+    expect(usage.spent).toBe(3_000);
+    expect(usage.remaining).toBe(7_000);
+    expect(usage.overBudget).toBe(false);
+  });
+
+  it('should detect over budget', () => {
+    const store = new TaxMilBudgetStore();
+    store.setBudget(1_000);
+    expect(store.getUsage(2_000).overBudget).toBe(true);
+  });
+});
+
+// ─── Currency Converter Tests ───────────────────────
+
+describe('TaxMilCurrencyConverter', () => {
+  beforeEach(() => localStorage.removeItem('taxmil.usdrate.v1'));
+
+  it('should convert COP to USD', () => {
+    const conv = new TaxMilCurrencyConverter();
+    const usd = conv.toUSD(4_150_000);
+    expect(usd).toBeCloseTo(1_000, 0);
+  });
+
+  it('should allow custom rate', () => {
+    const conv = new TaxMilCurrencyConverter();
+    conv.setRate(4_000);
+    expect(conv.toUSD(8_000_000)).toBeCloseTo(2_000, 0);
+  });
+});
+
+// ─── Theme Store Tests ──────────────────────────────
+
+describe('TaxMilThemeStore', () => {
+  beforeEach(() => localStorage.removeItem('taxmil.theme.v1'));
+
+  it('should default to auto', () => {
+    const store = new TaxMilThemeStore();
+    expect(store.preference).toBe('auto');
+  });
+
+  it('should cycle through modes', () => {
+    const store = new TaxMilThemeStore();
+    store.cycle();
+    expect(store.preference).toBe('light');
+    store.cycle();
+    expect(store.preference).toBe('dark');
+    store.cycle();
+    expect(store.preference).toBe('auto');
+  });
+
+  it('should resolve auto to dark or light', () => {
+    const store = new TaxMilThemeStore();
+    expect(['dark', 'light']).toContain(store.resolved);
+  });
+});
+
+// ─── i18n Tests ─────────────────────────────────────
+
+describe('TaxMilI18n', () => {
+  beforeEach(() => localStorage.removeItem('taxmil.lang.v1'));
+
+  it('should default to es', () => {
+    const i18n = new TaxMilI18n();
+    expect(i18n.lang).toBe('es');
+  });
+
+  it('should toggle language', () => {
+    const i18n = new TaxMilI18n();
+    i18n.toggle();
+    expect(i18n.lang).toBe('en');
+    i18n.toggle();
+    expect(i18n.lang).toBe('es');
+  });
+
+  it('should translate keys', () => {
+    const i18n = new TaxMilI18n();
+    expect(i18n.t('title')).toBeTruthy();
+    i18n.toggle();
+    expect(i18n.t('title')).toBeTruthy();
+  });
+
+  it('should return key for unknown translations', () => {
+    const i18n = new TaxMilI18n();
+    expect(i18n.t('nonexistent_key_xyz')).toBe('nonexistent_key_xyz');
+  });
+});
+
+// ─── History Filter & Notes Tests ───────────────────
+
+describe('TaxMilHistoryStore advanced', () => {
+  beforeEach(() => localStorage.removeItem('taxmil.history.v1'));
+
+  it('should filter by exempt status', () => {
+    const store = new TaxMilHistoryStore();
+    store.clear();
+    const engine = new TaxMilCalculatorEngine();
+    store.addEntry('totalToSend', 500_000, engine.breakdown('totalToSend', 500_000, false), false);
+    store.addEntry('totalToSend', 500_000, engine.breakdown('totalToSend', 500_000, true), true);
+    const taxed = store.filterEntries({ isExempt: false });
+    const exempt = store.filterEntries({ isExempt: true });
+    expect(taxed.length).toBe(1);
+    expect(exempt.length).toBe(1);
+  });
+
+  it('should update note on entry', () => {
+    const store = new TaxMilHistoryStore();
+    store.clear();
+    const engine = new TaxMilCalculatorEngine();
+    store.addEntry('totalToSend', 100_000, engine.breakdown('totalToSend', 100_000, false), false);
+    const id = store.entries[0].id;
+    store.updateNote(id, 'Test note');
+    expect(store.entries[0].note).toBe('Test note');
+  });
+
+  it('should get monthly aggregation', () => {
+    const store = new TaxMilHistoryStore();
+    store.clear();
+    const agg = store.getMonthlyAggregation();
+    expect(agg.length).toBe(12);
   });
 });

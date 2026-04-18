@@ -1,0 +1,20 @@
+{
+  "name": "TaxMil — Calculadora 4×1000",
+  "short_name": "TaxMil",
+  "description": "Calculadora del impuesto GMF 4×1000 en Colombia",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060e18",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
+  "categories": ["finance", "utilities"],
+  "lang": "es",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

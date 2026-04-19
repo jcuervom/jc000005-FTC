@@ -1,4 +1,11 @@
-import { Component, signal, computed, ElementRef, inject, OnInit } from '@angular/core';
+import {
+  Component,
+  signal,
+  computed,
+  ElementRef,
+  inject,
+  OnInit,
+} from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   TaxMilCalculatorEngine,
@@ -66,10 +73,7 @@ export class Calculator implements OnInit {
   ];
 
   readonly quickAmounts: ReadonlyArray<number> = [
-    100_000,
-    250_000,
-    500_000,
-    1_000_000,
+    100_000, 250_000, 500_000, 1_000_000,
   ];
 
   rawInput = signal('');
@@ -98,7 +102,9 @@ export class Calculator implements OnInit {
   );
 
   primaryLabel = computed(() =>
-    this.calculationMode() === 'totalToSend' ? 'Puedes enviar' : 'Debes transferir',
+    this.calculationMode() === 'totalToSend'
+      ? 'Puedes enviar'
+      : 'Debes transferir',
   );
 
   primaryDescription = computed(() =>
@@ -301,7 +307,9 @@ export class Calculator implements OnInit {
 
   monthlyTaxPaid = computed(() => this.historyStore.totalTaxPaidThisMonth());
 
-  potentialSavings = computed(() => this.historyStore.potentialSavingsIfExempt());
+  potentialSavings = computed(() =>
+    this.historyStore.potentialSavingsIfExempt(),
+  );
 
   budgetUsage = computed<TaxMilBudgetUsage>(() =>
     this.budgetStore.getUsage(this.monthlyTaxPaid()),
@@ -315,10 +323,17 @@ export class Calculator implements OnInit {
       .map((s) => this.engine.amountFrom(s.trim()))
       .filter((a) => a > 0);
     if (amounts.length === 0) return null;
-    return TaxMilBatchProcessor.process(this.engine, amounts, this.calculationMode(), this.isExempt());
+    return TaxMilBatchProcessor.process(
+      this.engine,
+      amounts,
+      this.calculationMode(),
+      this.isExempt(),
+    );
   });
 
-  chartData = computed<TaxMilMonthlyAggregate[]>(() => this.historyStore.getMonthlyAggregation());
+  chartData = computed<TaxMilMonthlyAggregate[]>(() =>
+    this.historyStore.getMonthlyAggregation(),
+  );
 
   chartMax = computed(() => {
     const data = this.chartData();
@@ -328,7 +343,9 @@ export class Calculator implements OnInit {
   exemptionSimulation = computed(() => this.historyStore.simulateExemption());
 
   usdEquivalent = computed(() =>
-    this.amount() > 0 ? this.currencyConverter.formatUSD(this.primaryAmount()) : '—',
+    this.amount() > 0
+      ? this.currencyConverter.formatUSD(this.primaryAmount())
+      : '—',
   );
 
   // ─── i18n helper ───────────────────────────────────
@@ -449,7 +466,9 @@ export class Calculator implements OnInit {
 
   // ─── Budget ────────────────────────────────────────
   onBudgetInput(event: Event): void {
-    const digits = this.engine.digitsOnly((event.target as HTMLInputElement).value);
+    const digits = this.engine.digitsOnly(
+      (event.target as HTMLInputElement).value,
+    );
     this.budgetInput.set(digits);
   }
 
@@ -467,7 +486,9 @@ export class Calculator implements OnInit {
 
   // ─── Currency ──────────────────────────────────────
   onRateInput(event: Event): void {
-    const digits = this.engine.digitsOnly((event.target as HTMLInputElement).value);
+    const digits = this.engine.digitsOnly(
+      (event.target as HTMLInputElement).value,
+    );
     if (digits) {
       this.currencyConverter.setRate(Number(digits));
     }
@@ -497,10 +518,14 @@ export class Calculator implements OnInit {
   }
 
   shareResult(): void {
-    const mode = this.calculationMode() === 'totalToSend' ? this.t('mode.total') : this.t('mode.net');
-    const primary = this.calculationMode() === 'totalToSend'
-      ? this.formatCOP(this.netAmount())
-      : this.formatCOP(this.totalAmount());
+    const mode =
+      this.calculationMode() === 'totalToSend'
+        ? this.t('mode.total')
+        : this.t('mode.net');
+    const primary =
+      this.calculationMode() === 'totalToSend'
+        ? this.formatCOP(this.netAmount())
+        : this.formatCOP(this.totalAmount());
 
     const text = [
       'TaxMil',
@@ -518,7 +543,11 @@ export class Calculator implements OnInit {
     this.saveCalculation();
   }
 
-  private downloadFile(content: string, filename: string, mimeType: string): void {
+  private downloadFile(
+    content: string,
+    filename: string,
+    mimeType: string,
+  ): void {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

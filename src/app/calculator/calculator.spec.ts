@@ -1,7 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { Calculator } from './calculator';
-import { TaxMilHistoryStore, TaxMilExportBuilder, TaxMilCalculatorEngine, TaxMilBatchProcessor, TaxMilBudgetStore, TaxMilCurrencyConverter, TaxMilThemeStore, TaxMilI18n } from './tax-mil.engine';
+import {
+  TaxMilHistoryStore,
+  TaxMilExportBuilder,
+  TaxMilCalculatorEngine,
+  TaxMilBatchProcessor,
+  TaxMilBudgetStore,
+  TaxMilCurrencyConverter,
+  TaxMilThemeStore,
+  TaxMilI18n,
+} from './tax-mil.engine';
 
 describe('Calculator', () => {
   let component: Calculator;
@@ -91,9 +100,13 @@ describe('Calculator', () => {
 
     it('should charge tax only on excess when exempt and over monthly limit', () => {
       component.isExempt.set(true);
-      component.rawInput.set((component.EXEMPT_LIMIT_COP + 1_004_000).toString());
+      component.rawInput.set(
+        (component.EXEMPT_LIMIT_COP + 1_004_000).toString(),
+      );
 
-      const expectedTax = Math.round((1_004_000 * component.TAX_RATE) / (1 + component.TAX_RATE));
+      const expectedTax = Math.round(
+        (1_004_000 * component.TAX_RATE) / (1 + component.TAX_RATE),
+      );
       expect(component.taxAmount()).toBe(expectedTax);
       expect(component.exemptionExceeded()).toBe(true);
       expect(component.taxableExcessAmount()).toBeGreaterThan(0);
@@ -331,7 +344,9 @@ describe('Calculator', () => {
 
     it('should render exempt toggle control', () => {
       const el: HTMLElement = fixture.nativeElement;
-      const toggle = el.querySelector('input#exempt-toggle') as HTMLInputElement;
+      const toggle = el.querySelector(
+        'input#exempt-toggle',
+      ) as HTMLInputElement;
       expect(toggle).toBeTruthy();
       expect(toggle.type).toBe('checkbox');
     });
@@ -632,7 +647,9 @@ describe('TaxMilCalculatorEngine', () => {
   it('tax percentage should be consistent', () => {
     const result = engine.breakdown('totalToSend', 1_000_000, false);
     const expected = (result.tax / result.total) * 100;
-    expect(Math.abs(result.taxPercentageOfTotal - expected)).toBeLessThan(0.0001);
+    expect(Math.abs(result.taxPercentageOfTotal - expected)).toBeLessThan(
+      0.0001,
+    );
   });
 });
 
@@ -709,7 +726,13 @@ describe('TaxMilExportBuilder', () => {
   it('should generate PDF HTML content', () => {
     const engine = new TaxMilCalculatorEngine();
     const result = engine.breakdown('totalToSend', 500_000, false);
-    const html = TaxMilExportBuilder.generatePDFContent('totalToSend', 500_000, result, false, engine);
+    const html = TaxMilExportBuilder.generatePDFContent(
+      'totalToSend',
+      500_000,
+      result,
+      false,
+      engine,
+    );
     expect(html).toContain('TaxMil');
     expect(html).toContain('500');
     expect(html).toContain('<!DOCTYPE html>');
@@ -722,19 +745,34 @@ describe('TaxMilBatchProcessor', () => {
   const engine = new TaxMilCalculatorEngine();
 
   it('should process multiple amounts', () => {
-    const result = TaxMilBatchProcessor.process(engine, [100_000, 200_000], 'totalToSend', false);
+    const result = TaxMilBatchProcessor.process(
+      engine,
+      [100_000, 200_000],
+      'totalToSend',
+      false,
+    );
     expect(result.lines.length).toBe(2);
     expect(result.totalTax).toBeGreaterThan(0);
   });
 
   it('should handle exempt amounts', () => {
-    const result = TaxMilBatchProcessor.process(engine, [10_000_000], 'totalToSend', true);
+    const result = TaxMilBatchProcessor.process(
+      engine,
+      [10_000_000],
+      'totalToSend',
+      true,
+    );
     expect(result.lines[0].result.tax).toBe(0);
     expect(result.totalTax).toBe(0);
   });
 
   it('should handle empty array', () => {
-    const result = TaxMilBatchProcessor.process(engine, [], 'totalToSend', false);
+    const result = TaxMilBatchProcessor.process(
+      engine,
+      [],
+      'totalToSend',
+      false,
+    );
     expect(result.lines.length).toBe(0);
     expect(result.totalTax).toBe(0);
   });
@@ -851,8 +889,18 @@ describe('TaxMilHistoryStore advanced', () => {
     const store = new TaxMilHistoryStore();
     store.clear();
     const engine = new TaxMilCalculatorEngine();
-    store.addEntry('totalToSend', 500_000, engine.breakdown('totalToSend', 500_000, false), false);
-    store.addEntry('totalToSend', 500_000, engine.breakdown('totalToSend', 500_000, true), true);
+    store.addEntry(
+      'totalToSend',
+      500_000,
+      engine.breakdown('totalToSend', 500_000, false),
+      false,
+    );
+    store.addEntry(
+      'totalToSend',
+      500_000,
+      engine.breakdown('totalToSend', 500_000, true),
+      true,
+    );
     const taxed = store.filterEntries({ isExempt: false });
     const exempt = store.filterEntries({ isExempt: true });
     expect(taxed.length).toBe(1);
@@ -863,7 +911,12 @@ describe('TaxMilHistoryStore advanced', () => {
     const store = new TaxMilHistoryStore();
     store.clear();
     const engine = new TaxMilCalculatorEngine();
-    store.addEntry('totalToSend', 100_000, engine.breakdown('totalToSend', 100_000, false), false);
+    store.addEntry(
+      'totalToSend',
+      100_000,
+      engine.breakdown('totalToSend', 100_000, false),
+      false,
+    );
     const id = store.entries[0].id;
     store.updateNote(id, 'Test note');
     expect(store.entries[0].note).toBe('Test note');

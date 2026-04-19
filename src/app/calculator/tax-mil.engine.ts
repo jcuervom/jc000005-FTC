@@ -65,7 +65,11 @@ export abstract class FinancialCalculatorEngine<
     return remainder === 0 ? value : value + (step - remainder);
   }
 
-  abstract breakdown(mode: TMode, inputAmount: number, isExempt: boolean): TResult;
+  abstract breakdown(
+    mode: TMode,
+    inputAmount: number,
+    isExempt: boolean,
+  ): TResult;
 }
 
 export class TaxMilCalculatorEngine extends FinancialCalculatorEngine<
@@ -74,13 +78,19 @@ export class TaxMilCalculatorEngine extends FinancialCalculatorEngine<
 > {
   readonly EXEMPT_LIMIT_UVT = 350;
   readonly UVT_VALUE_COP = 52_374;
-  readonly exemptLimitCOP = Math.round(this.EXEMPT_LIMIT_UVT * this.UVT_VALUE_COP);
+  readonly exemptLimitCOP = Math.round(
+    this.EXEMPT_LIMIT_UVT * this.UVT_VALUE_COP,
+  );
 
   constructor() {
     super(4 / 1000, 'es-CO');
   }
 
-  breakdown(mode: TaxMilCalculationMode, inputAmount: number, isExempt: boolean): TaxMilResult {
+  breakdown(
+    mode: TaxMilCalculationMode,
+    inputAmount: number,
+    isExempt: boolean,
+  ): TaxMilResult {
     if (mode === 'desiredNet') {
       return this.requiredTotalForDesiredNet(inputAmount, isExempt);
     }
@@ -141,7 +151,10 @@ export class TaxMilCalculatorEngine extends FinancialCalculatorEngine<
     });
   }
 
-  requiredTotalForDesiredNet(desiredNet: number, isExempt = false): TaxMilResult {
+  requiredTotalForDesiredNet(
+    desiredNet: number,
+    isExempt = false,
+  ): TaxMilResult {
     if (desiredNet <= 0) {
       return this.makeResult({
         total: 0,
@@ -176,7 +189,9 @@ export class TaxMilCalculatorEngine extends FinancialCalculatorEngine<
       });
     }
 
-    const estimatedTax = Math.round((desiredNet - this.exemptLimitCOP) * this.taxRate);
+    const estimatedTax = Math.round(
+      (desiredNet - this.exemptLimitCOP) * this.taxRate,
+    );
     let total = desiredNet + estimatedTax;
     let result = this.breakdownForTotal(total, true);
 
@@ -236,7 +251,9 @@ export class TaxMilCalculatorEngine extends FinancialCalculatorEngine<
     return options;
   }
 
-  private makeResult(base: Omit<TaxMilResult, 'taxPercentageOfTotal'>): TaxMilResult {
+  private makeResult(
+    base: Omit<TaxMilResult, 'taxPercentageOfTotal'>,
+  ): TaxMilResult {
     const taxPercentageOfTotal =
       base.total > 0 ? (base.tax / base.total) * 100 : 0;
 
@@ -269,7 +286,13 @@ export class TaxMilHistoryStore {
     this.load();
   }
 
-  addEntry(mode: TaxMilCalculationMode, inputAmount: number, result: TaxMilResult, isExempt: boolean, note?: string): void {
+  addEntry(
+    mode: TaxMilCalculationMode,
+    inputAmount: number,
+    result: TaxMilResult,
+    isExempt: boolean,
+    note?: string,
+  ): void {
     if (inputAmount <= 0 || result.total <= 0) return;
 
     const now = new Date().toISOString();
@@ -315,7 +338,10 @@ export class TaxMilHistoryStore {
 
     const counters = new Map<number, number>();
     for (const entry of this.entries) {
-      counters.set(entry.inputAmount, (counters.get(entry.inputAmount) ?? 0) + 1);
+      counters.set(
+        entry.inputAmount,
+        (counters.get(entry.inputAmount) ?? 0) + 1,
+      );
     }
 
     return [...counters.entries()]
@@ -355,7 +381,8 @@ export class TaxMilHistoryStore {
   filterEntries(filter: TaxMilHistoryFilter): TaxMilHistoryEntry[] {
     return this.entries.filter((e) => {
       if (filter.mode && e.mode !== filter.mode) return false;
-      if (filter.isExempt !== undefined && e.isExempt !== filter.isExempt) return false;
+      if (filter.isExempt !== undefined && e.isExempt !== filter.isExempt)
+        return false;
       if (filter.dateFrom && e.date < filter.dateFrom) return false;
       if (filter.dateTo && e.date > filter.dateTo) return false;
       if (filter.search) {
@@ -367,9 +394,38 @@ export class TaxMilHistoryStore {
   }
 
   getMonthlyAggregation(): TaxMilMonthlyAggregate[] {
-    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const monthsEn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const map = new Map<string, { tax: number; count: number; volume: number }>();
+    const months = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
+    const monthsEn = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    const map = new Map<
+      string,
+      { tax: number; count: number; volume: number }
+    >();
     const now = new Date();
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -388,11 +444,23 @@ export class TaxMilHistoryStore {
     }
     return [...map.entries()].map(([key, v]) => {
       const m = Number(key.split('-')[1]) - 1;
-      return { key, label: months[m], labelEn: monthsEn[m], totalTax: v.tax, count: v.count, volume: v.volume };
+      return {
+        key,
+        label: months[m],
+        labelEn: monthsEn[m],
+        totalTax: v.tax,
+        count: v.count,
+        volume: v.volume,
+      };
     });
   }
 
-  simulateExemption(): { currentMonthlyTax: number; exemptMonthlyTax: number; monthlySavings: number; annualSavings: number } {
+  simulateExemption(): {
+    currentMonthlyTax: number;
+    exemptMonthlyTax: number;
+    monthlySavings: number;
+    annualSavings: number;
+  } {
     const now = new Date();
     const month = now.getMonth();
     const year = now.getFullYear();
@@ -406,7 +474,12 @@ export class TaxMilHistoryStore {
       return s;
     }, 0);
     const savings = currentTax - exemptTax;
-    return { currentMonthlyTax: currentTax, exemptMonthlyTax: exemptTax, monthlySavings: savings, annualSavings: savings * 12 };
+    return {
+      currentMonthlyTax: currentTax,
+      exemptMonthlyTax: exemptTax,
+      monthlySavings: savings,
+      annualSavings: savings * 12,
+    };
   }
 
   private load(): void {
@@ -420,7 +493,10 @@ export class TaxMilHistoryStore {
 
   private persist(): void {
     try {
-      localStorage.setItem(TaxMilHistoryStore.STORAGE_KEY, JSON.stringify(this.entries));
+      localStorage.setItem(
+        TaxMilHistoryStore.STORAGE_KEY,
+        JSON.stringify(this.entries),
+      );
     } catch {
       // storage full — silently fail
     }
@@ -431,7 +507,9 @@ export class TaxMilExportBuilder {
   static csv(entries: TaxMilHistoryEntry[]): string {
     const header = 'date,mode,input,total,tax,net,isExempt';
     const rows = entries.map((e) =>
-      [e.date, e.mode, e.inputAmount, e.total, e.tax, e.net, e.isExempt].join(','),
+      [e.date, e.mode, e.inputAmount, e.total, e.tax, e.net, e.isExempt].join(
+        ',',
+      ),
     );
     return [header, ...rows].join('\n');
   }
@@ -455,10 +533,16 @@ export class TaxMilExportBuilder {
     ];
 
     if (isExempt && result.exemptCovered > 0) {
-      rows.push({ label: 'Exención aplicada', value: engine.formatCOP(result.exemptCovered) });
+      rows.push({
+        label: 'Exención aplicada',
+        value: engine.formatCOP(result.exemptCovered),
+      });
     }
     if (result.taxableBase > 0) {
-      rows.push({ label: 'Base gravable', value: engine.formatCOP(result.taxableBase) });
+      rows.push({
+        label: 'Base gravable',
+        value: engine.formatCOP(result.taxableBase),
+      });
     }
 
     const tableRows = rows
@@ -532,7 +616,10 @@ export class TaxMilBudgetStore {
       budget: this.monthlyBudget,
       spent: monthlyTaxPaid,
       remaining,
-      percentage: this.monthlyBudget > 0 ? Math.min(100, (monthlyTaxPaid / this.monthlyBudget) * 100) : 0,
+      percentage:
+        this.monthlyBudget > 0
+          ? Math.min(100, (monthlyTaxPaid / this.monthlyBudget) * 100)
+          : 0,
       overBudget: this.monthlyBudget > 0 && monthlyTaxPaid > this.monthlyBudget,
     };
   }
@@ -548,8 +635,13 @@ export class TaxMilBudgetStore {
 
   private persist(): void {
     try {
-      localStorage.setItem(TaxMilBudgetStore.STORAGE_KEY, String(this.monthlyBudget));
-    } catch { /* storage full */ }
+      localStorage.setItem(
+        TaxMilBudgetStore.STORAGE_KEY,
+        String(this.monthlyBudget),
+      );
+    } catch {
+      /* storage full */
+    }
   }
 }
 
@@ -604,7 +696,13 @@ export class TaxMilCurrencyConverter {
   }
 
   formatUSD(cop: number): string {
-    return 'US$ ' + this.toUSD(cop).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (
+      'US$ ' +
+      this.toUSD(cop).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    );
   }
 
   setRate(rate: number): void {
@@ -616,13 +714,20 @@ export class TaxMilCurrencyConverter {
     try {
       const raw = localStorage.getItem(TaxMilCurrencyConverter.STORAGE_KEY);
       if (raw) this.rate = Number(raw);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }
 
   private persist(): void {
     try {
-      localStorage.setItem(TaxMilCurrencyConverter.STORAGE_KEY, String(this.rate));
-    } catch { /* noop */ }
+      localStorage.setItem(
+        TaxMilCurrencyConverter.STORAGE_KEY,
+        String(this.rate),
+      );
+    } catch {
+      /* noop */
+    }
   }
 }
 
@@ -640,7 +745,10 @@ export class TaxMilThemeStore {
 
   get resolved(): 'dark' | 'light' {
     if (this.preference !== 'auto') return this.preference;
-    return globalThis.window !== undefined && globalThis.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    return globalThis.window !== undefined &&
+      globalThis.matchMedia('(prefers-color-scheme: light)').matches
+      ? 'light'
+      : 'dark';
   }
 
   cycle(): void {
@@ -652,15 +760,22 @@ export class TaxMilThemeStore {
 
   private load(): void {
     try {
-      const raw = localStorage.getItem(TaxMilThemeStore.STORAGE_KEY) as TaxMilTheme | null;
-      if (raw === 'dark' || raw === 'light' || raw === 'auto') this.preference = raw;
-    } catch { /* noop */ }
+      const raw = localStorage.getItem(
+        TaxMilThemeStore.STORAGE_KEY,
+      ) as TaxMilTheme | null;
+      if (raw === 'dark' || raw === 'light' || raw === 'auto')
+        this.preference = raw;
+    } catch {
+      /* noop */
+    }
   }
 
   private persist(): void {
     try {
       localStorage.setItem(TaxMilThemeStore.STORAGE_KEY, this.preference);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }
 }
 
@@ -672,7 +787,8 @@ const TRANSLATIONS: Record<TaxMilLang, Record<string, string>> = {
   es: {
     'app.title': 'TaxMil',
     'app.tagline': 'Calculadora 4×1000',
-    'app.subtitle': 'Simulador estratégico de GMF: modo total o meta neta, con exención legal y desglose inmediato.',
+    'app.subtitle':
+      'Simulador estratégico de GMF: modo total o meta neta, con exención legal y desglose inmediato.',
     'mode.label': 'Modo de cálculo',
     'mode.total': 'Total a enviar',
     'mode.net': 'Meta neta',
@@ -682,11 +798,12 @@ const TRANSLATIONS: Record<TaxMilLang, Record<string, string>> = {
     'input.label.net': 'Monto neto que quiero recibir',
     'input.aria': 'Monto en pesos colombianos',
     'exempt.label': 'Aplicar cuenta exenta (límite legal)',
-    'exempt.hint': 'La exención cubre hasta {limit} por mes. El excedente sí paga 4×1000.',
+    'exempt.hint':
+      'La exención cubre hasta {limit} por mes. El excedente sí paga 4×1000.',
     'exempt.ok': 'Exención aplicada: no se causa GMF dentro del tope mensual.',
     'exempt.exceeded.prefix': 'Exención usada:',
     'exempt.exceeded.suffix': 'Exceso gravado:',
-    'clear': 'Limpiar',
+    clear: 'Limpiar',
     'result.label.total': 'Puedes enviar',
     'result.label.net': 'Debes transferir',
     'result.desc.total': 'Monto neto después del impuesto aplicable',
@@ -699,10 +816,10 @@ const TRANSLATIONS: Record<TaxMilLang, Record<string, string>> = {
     'breakdown.exempt': 'Exento',
     'breakdown.excess': 'Exceso gravado',
     'impact.label': 'Impacto fiscal',
-    'share': 'Compartir',
-    'save': 'Guardar',
-    'copy': 'Copiar',
-    'copied': 'Copiado',
+    share: 'Compartir',
+    save: 'Guardar',
+    copy: 'Copiar',
+    copied: 'Copiado',
     'goal.title': 'Opciones por tramo',
     'goal.extra': 'extra',
     'frequent.title': 'Montos frecuentes',
@@ -743,12 +860,15 @@ const TRANSLATIONS: Record<TaxMilLang, Record<string, string>> = {
     'export.csv': 'Exportar CSV',
     'export.pdf': 'Exportar PDF',
     'feedback.title': 'Feedback y mejora',
-    'feedback.hint': 'Ayuda a mejorar TaxMil: comparte ideas o califica la app.',
+    'feedback.hint':
+      'Ayuda a mejorar TaxMil: comparte ideas o califica la app.',
     'feedback.send': 'Enviar feedback',
-    'footer.info': 'El GMF (4×1000) grava movimientos financieros en Colombia. La exención para cuenta aplica hasta 350 UVT mensuales (Art. 879 E.T.) y el excedente sí genera impuesto.',
+    'footer.info':
+      'El GMF (4×1000) grava movimientos financieros en Colombia. La exención para cuenta aplica hasta 350 UVT mensuales (Art. 879 E.T.) y el excedente sí genera impuesto.',
     'footer.rights': 'Todos los derechos reservados.',
     'empty.title': 'Simula en segundos',
-    'empty.desc': 'Ingresa un monto o usa un preset para obtener inmediatamente el neto, el impuesto y el desglose fiscal.',
+    'empty.desc':
+      'Ingresa un monto o usa un preset para obtener inmediatamente el neto, el impuesto y el desglose fiscal.',
     'pill.mode': 'Modo',
     'pill.limit': 'Tope exento',
     'pill.tax': 'Impuesto estimado',
@@ -765,7 +885,8 @@ const TRANSLATIONS: Record<TaxMilLang, Record<string, string>> = {
   en: {
     'app.title': 'TaxMil',
     'app.tagline': '4×1000 Calculator',
-    'app.subtitle': 'Strategic GMF simulator: total or net goal mode, with legal exemption and instant breakdown.',
+    'app.subtitle':
+      'Strategic GMF simulator: total or net goal mode, with legal exemption and instant breakdown.',
     'mode.label': 'Calculation mode',
     'mode.total': 'Total to send',
     'mode.net': 'Net goal',
@@ -775,11 +896,12 @@ const TRANSLATIONS: Record<TaxMilLang, Record<string, string>> = {
     'input.label.net': 'Net amount I want to receive',
     'input.aria': 'Amount in Colombian pesos',
     'exempt.label': 'Apply exempt account (legal limit)',
-    'exempt.hint': 'Exemption covers up to {limit} per month. The excess does pay 4×1000.',
+    'exempt.hint':
+      'Exemption covers up to {limit} per month. The excess does pay 4×1000.',
     'exempt.ok': 'Exemption applied: no GMF incurred within the monthly cap.',
     'exempt.exceeded.prefix': 'Exemption used:',
     'exempt.exceeded.suffix': 'Taxed excess:',
-    'clear': 'Clear',
+    clear: 'Clear',
     'result.label.total': 'You can send',
     'result.label.net': 'You must transfer',
     'result.desc.total': 'Net amount after applicable tax',
@@ -792,10 +914,10 @@ const TRANSLATIONS: Record<TaxMilLang, Record<string, string>> = {
     'breakdown.exempt': 'Exempt',
     'breakdown.excess': 'Taxed excess',
     'impact.label': 'Tax impact',
-    'share': 'Share',
-    'save': 'Save',
-    'copy': 'Copy',
-    'copied': 'Copied',
+    share: 'Share',
+    save: 'Save',
+    copy: 'Copy',
+    copied: 'Copied',
     'goal.title': 'Step options',
     'goal.extra': 'extra',
     'frequent.title': 'Frequent amounts',
@@ -838,10 +960,12 @@ const TRANSLATIONS: Record<TaxMilLang, Record<string, string>> = {
     'feedback.title': 'Feedback & improvement',
     'feedback.hint': 'Help improve TaxMil: share ideas or rate the app.',
     'feedback.send': 'Send feedback',
-    'footer.info': 'The GMF (4×1000) taxes financial movements in Colombia. The account exemption applies up to 350 UVT monthly (Art. 879 E.T.) and the excess does generate tax.',
+    'footer.info':
+      'The GMF (4×1000) taxes financial movements in Colombia. The account exemption applies up to 350 UVT monthly (Art. 879 E.T.) and the excess does generate tax.',
     'footer.rights': 'All rights reserved.',
     'empty.title': 'Simulate in seconds',
-    'empty.desc': 'Enter an amount or use a preset to instantly get the net, tax, and fiscal breakdown.',
+    'empty.desc':
+      'Enter an amount or use a preset to instantly get the net, tax, and fiscal breakdown.',
     'pill.mode': 'Mode',
     'pill.limit': 'Exempt cap',
     'pill.tax': 'Estimated tax',
@@ -884,12 +1008,16 @@ export class TaxMilI18n {
     try {
       const raw = localStorage.getItem(TaxMilI18n.STORAGE_KEY);
       if (raw === 'en' || raw === 'es') this.lang = raw;
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }
 
   private persist(): void {
     try {
       localStorage.setItem(TaxMilI18n.STORAGE_KEY, this.lang);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }
 }

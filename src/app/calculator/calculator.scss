@@ -1332,6 +1332,41 @@ $radius-md: 8px;
   gap: 8px;
   font-size: 0.84rem;
   color: var(--text-soft);
+
+  strong {
+    color: var(--text-main);
+    font-weight: 700;
+  }
+}
+
+.currency-row-manual {
+  margin-top: 6px;
+}
+
+.currency-meta {
+  margin-top: 8px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+
+  .currency-source {
+    color: var(--accent-soft);
+    font-weight: 600;
+  }
+}
+
+.currency-error {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: var(--red);
+  line-height: 1.4;
+}
+
+.currency-retry {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: var(--amber);
 }
 
 .rate-input {

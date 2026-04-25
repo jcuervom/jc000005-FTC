@@ -1,3 +1,5 @@
+/// <reference types="jasmine" />
+
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { Calculator } from './calculator';
@@ -737,6 +739,22 @@ describe('TaxMilExportBuilder', () => {
     expect(html).toContain('500');
     expect(html).toContain('<!DOCTYPE html>');
   });
+
+  it('should generate PDF binary data without print dialog', () => {
+    const engine = new TaxMilCalculatorEngine();
+    const result = engine.breakdown('totalToSend', 500_000, false);
+    const pdfData = TaxMilExportBuilder.generatePDFData(
+      'totalToSend',
+      500_000,
+      result,
+      false,
+      engine,
+    );
+
+    expect(pdfData.byteLength).toBeGreaterThan(0);
+    const header = new TextDecoder().decode(pdfData.slice(0, 5));
+    expect(header).toContain('%PDF');
+  });
 });
 
 // ─── Batch Processor Tests ──────────────────────────
@@ -808,7 +826,11 @@ describe('TaxMilBudgetStore', () => {
 // ─── Currency Converter Tests ───────────────────────
 
 describe('TaxMilCurrencyConverter', () => {
-  beforeEach(() => localStorage.removeItem('taxmil.usdrate.v1'));
+  beforeEach(() => {
+    localStorage.removeItem('taxmil.usdrate.v1');
+    localStorage.removeItem('taxmil.usdrate.snapshot.v2');
+    localStorage.removeItem('taxmil.usdrate.history.v1');
+  });
 
   it('should convert COP to USD', () => {
     const conv = new TaxMilCurrencyConverter();
@@ -820,6 +842,95 @@ describe('TaxMilCurrencyConverter', () => {
     const conv = new TaxMilCurrencyConverter();
     conv.setRate(4_000);
     expect(conv.toUSD(8_000_000)).toBeCloseTo(2_000, 0);
+  });
+
+  it('should parse official TRM payload', () => {
+    const parsed = TaxMilCurrencyConverter.parseOfficialResponse({
+      fecha: '20260424',
+      hora: '12:59:58',
+      precioPromedio: 3551.2455,
+    });
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.rate).toBe(3551);
+    expect(parsed?.sourceDate).toBeTruthy();
+  });
+
+  it('should refresh official TRM and mark source as official', async () => {
+    const conv = new TaxMilCurrencyConverter();
+
+    const fetchFn = (async () =>
+      ({
+        ok: true,
+        json: async () => ({
+          fecha: '20260424',
+          hora: '12:00:00',
+          precioPromedio: 3551.24,
+        }),
+      }) as Response) as typeof fetch;
+
+    await conv.refreshOfficialRate({
+      force: true,
+      now: new Date('2026-04-25T12:00:00Z'),
+      fetchFn,
+    });
+
+    expect(conv.source).toBe('official');
+    expect(conv.rate).toBe(3551);
+    expect(conv.status).toBe('ready');
+    expect(conv.snapshot().history.length).toBeGreaterThan(0);
+  });
+
+  it('should keep local rate when official source fails', async () => {
+    const conv = new TaxMilCurrencyConverter();
+    conv.setRate(4200);
+
+    const fetchFn = (async () => {
+      throw new Error('network-error');
+    }) as typeof fetch;
+
+    await conv.refreshOfficialRate({ force: true, fetchFn });
+
+    expect(conv.rate).toBe(4200);
+    expect(conv.status).toBe('source-unavailable');
+  });
+
+  it('should compute daily variation from local TRM history', async () => {
+    const conv = new TaxMilCurrencyConverter();
+
+    const fetchDay1 = (async () =>
+      ({
+        ok: true,
+        json: async () => ({
+          fecha: '20260424',
+          hora: '12:00:00',
+          precioPromedio: 3500,
+        }),
+      }) as Response) as typeof fetch;
+
+    const fetchDay2 = (async () =>
+      ({
+        ok: true,
+        json: async () => ({
+          fecha: '20260425',
+          hora: '12:00:00',
+          precioPromedio: 3550,
+        }),
+      }) as Response) as typeof fetch;
+
+    await conv.refreshOfficialRate({
+      force: true,
+      now: new Date('2026-04-24T12:00:00Z'),
+      fetchFn: fetchDay1,
+    });
+    await conv.refreshOfficialRate({
+      force: true,
+      now: new Date('2026-04-25T12:00:00Z'),
+      fetchFn: fetchDay2,
+    });
+
+    expect(conv.dailyVariation()).toBe(50);
+    expect(conv.dailyVariationPercent()).toBeCloseTo(1.428, 2);
   });
 });
 

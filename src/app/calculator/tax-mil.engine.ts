@@ -514,6 +514,121 @@ export class TaxMilExportBuilder {
     return [header, ...rows].join('\n');
   }
 
+  private static summaryLines(
+    mode: TaxMilCalculationMode,
+    inputAmount: number,
+    result: TaxMilResult,
+    isExempt: boolean,
+    engine: TaxMilCalculatorEngine,
+  ): string[] {
+    const modeLabel = mode === 'totalToSend' ? 'Total ingresado' : 'Meta neta';
+    const generatedAt = new Date().toLocaleString('es-CO');
+    const rows = [
+      `${modeLabel}: ${engine.formatCOP(inputAmount)}`,
+      `Total a transferir: ${engine.formatCOP(result.total)}`,
+      `Impuesto: ${engine.formatCOP(result.tax)}`,
+      `Neto: ${engine.formatCOP(result.net)}`,
+      `Cuenta exenta: ${isExempt ? 'Si' : 'No'}`,
+    ];
+
+    if (isExempt && result.exemptCovered > 0) {
+      rows.push(`Exencion aplicada: ${engine.formatCOP(result.exemptCovered)}`);
+    }
+
+    if (result.taxableBase > 0) {
+      rows.push(`Base gravable: ${engine.formatCOP(result.taxableBase)}`);
+    }
+
+    return [
+      'TaxMil',
+      'Resumen profesional',
+      `Generado: ${generatedAt}`,
+      '',
+      ...rows,
+      '',
+      'Fuente TRM: Banco de la Republica (si hay conectividad)',
+      'Generado por TaxMil - Calculadora 4x1000 Colombia',
+    ];
+  }
+
+  private static sanitizePDFText(raw: string): string {
+    const replacements: Record<string, string> = {
+      'á': 'a',
+      'é': 'e',
+      'í': 'i',
+      'ó': 'o',
+      'ú': 'u',
+      'Á': 'A',
+      'É': 'E',
+      'Í': 'I',
+      'Ó': 'O',
+      'Ú': 'U',
+      'ñ': 'n',
+      'Ñ': 'N',
+      'ü': 'u',
+      'Ü': 'U',
+    };
+
+    const normalized = raw
+      .split('')
+      .map((char) => replacements[char] ?? char)
+      .join('');
+
+    return normalized.replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)');
+  }
+
+  private static buildMinimalPDF(lines: string[]): Uint8Array {
+    const contentParts = ['BT', '/F1 11 Tf', '50 800 Td'];
+
+    for (const line of lines.slice(0, 45)) {
+      const sanitized = this.sanitizePDFText(line);
+      contentParts.push(`(${sanitized}) Tj`);
+      contentParts.push('0 -16 Td');
+    }
+
+    contentParts.push('ET');
+    const contentStream = contentParts.join('\n');
+
+    const objects = [
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+      `<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`,
+    ];
+
+    let pdf = '%PDF-1.4\n';
+    const offsets = [0];
+
+    objects.forEach((object, index) => {
+      offsets.push(pdf.length);
+      pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    });
+
+    const xrefStart = pdf.length;
+    pdf += `xref\n0 ${objects.length + 1}\n`;
+    pdf += '0000000000 65535 f \n';
+
+    for (let index = 1; index <= objects.length; index += 1) {
+      pdf += `${String(offsets[index]).padStart(10, '0')} 00000 n \n`;
+    }
+
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+
+    return new TextEncoder().encode(pdf);
+  }
+
+  static generatePDFData(
+    mode: TaxMilCalculationMode,
+    inputAmount: number,
+    result: TaxMilResult,
+    isExempt: boolean,
+    engine: TaxMilCalculatorEngine,
+  ): Uint8Array {
+    const lines = this.summaryLines(mode, inputAmount, result, isExempt, engine);
+    return this.buildMinimalPDF(lines);
+  }
+
   static generatePDFContent(
     mode: TaxMilCalculationMode,
     inputAmount: number,
@@ -683,12 +798,77 @@ export class TaxMilBatchProcessor {
 
 // ─── Currency Converter ───────────────────────────────
 
+export type TaxMilRateSource = 'official' | 'manual';
+
+export type TaxMilRateStatus =
+  | 'idle'
+  | 'updating'
+  | 'ready'
+  | 'offline'
+  | 'source-unavailable'
+  | 'retrying';
+
+export interface TaxMilRateHistoryEntry {
+  date: string;
+  rate: number;
+  source: TaxMilRateSource;
+  syncedAt: string;
+}
+
+export interface TaxMilRateSnapshot {
+  rate: number;
+  source: TaxMilRateSource;
+  status: TaxMilRateStatus;
+  sourceDate: string | null;
+  lastSyncedAt: string | null;
+  lastError: string | null;
+  retryAt: string | null;
+  history: TaxMilRateHistoryEntry[];
+}
+
+interface TaxMilOfficialRatePayload {
+  fecha?: unknown;
+  hora?: unknown;
+  precioPromedio?: unknown;
+  precioXHora?: unknown;
+  precioCierre?: unknown;
+  precioApertura?: unknown;
+}
+
 export class TaxMilCurrencyConverter {
-  private static readonly STORAGE_KEY = 'taxmil.usdrate.v1';
+  private static readonly LEGACY_RATE_KEY = 'taxmil.usdrate.v1';
+  private static readonly STORAGE_KEY = TaxMilCurrencyConverter.LEGACY_RATE_KEY;
+  private static readonly SNAPSHOT_STORAGE_KEY = 'taxmil.usdrate.snapshot.v2';
+  private static readonly HISTORY_STORAGE_KEY = 'taxmil.usdrate.history.v1';
+  private static readonly OFFICIAL_ENDPOINT =
+    'https://suameca.banrep.gov.co/estadisticas-economicas-back/rest/estadisticaEconomicaRestService/consultaTablaMercadoCambiario';
+  private static readonly MAX_HISTORY_DAYS = 120;
+  private static readonly FRESH_RATE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
   rate = 4_150;
+  source: TaxMilRateSource = 'manual';
+  status: TaxMilRateStatus = 'idle';
+  sourceDate: string | null = null;
+  lastSyncedAt: string | null = null;
+  lastError: string | null = null;
+  retryAt: string | null = null;
+  history: TaxMilRateHistoryEntry[] = [];
 
   constructor() {
     this.load();
+  }
+
+  snapshot(): TaxMilRateSnapshot {
+    return {
+      rate: this.rate,
+      source: this.source,
+      status: this.status,
+      sourceDate: this.sourceDate,
+      lastSyncedAt: this.lastSyncedAt,
+      lastError: this.lastError,
+      retryAt: this.retryAt,
+      history: [...this.history],
+    };
   }
 
   toUSD(cop: number): number {
@@ -707,13 +887,327 @@ export class TaxMilCurrencyConverter {
 
   setRate(rate: number): void {
     this.rate = Math.max(1, Math.round(rate));
+    this.source = 'manual';
+    this.status = 'ready';
+    this.lastError = null;
+    this.retryAt = null;
+    this.lastSyncedAt = new Date().toISOString();
+    if (!this.sourceDate) {
+      this.sourceDate = this.lastSyncedAt;
+    }
+    this.pushHistory(
+      (this.sourceDate ?? this.lastSyncedAt).slice(0, 10),
+      this.rate,
+      'manual',
+      this.lastSyncedAt,
+    );
     this.persist();
+  }
+
+  hasFreshOfficialRate(maxAgeMs = TaxMilCurrencyConverter.FRESH_RATE_MAX_AGE_MS): boolean {
+    if (this.source !== 'official' || !this.lastSyncedAt) {
+      return false;
+    }
+
+    return Date.now() - Date.parse(this.lastSyncedAt) < maxAgeMs;
+  }
+
+  setRetryState(retryAtISO: string): void {
+    this.retryAt = retryAtISO;
+    this.persist();
+  }
+
+  clearRetryState(): void {
+    this.retryAt = null;
+    if (this.status === 'retrying') {
+      this.status = 'ready';
+    }
+    this.persist();
+  }
+
+  markOfflineState(): void {
+    this.status = 'offline';
+    this.lastError = 'offline';
+    this.persist();
+  }
+
+  dailyVariation(): number | null {
+    const sorted = [...this.history].sort((a, b) => a.date.localeCompare(b.date));
+    if (sorted.length < 2) {
+      return null;
+    }
+
+    const latest = sorted[sorted.length - 1];
+    const previous = sorted[sorted.length - 2];
+    return latest.rate - previous.rate;
+  }
+
+  dailyVariationPercent(): number | null {
+    const sorted = [...this.history].sort((a, b) => a.date.localeCompare(b.date));
+    if (sorted.length < 2) {
+      return null;
+    }
+
+    const latest = sorted[sorted.length - 1];
+    const previous = sorted[sorted.length - 2];
+    if (previous.rate <= 0) {
+      return null;
+    }
+
+    return ((latest.rate - previous.rate) / previous.rate) * 100;
+  }
+
+  async refreshOfficialRate(options?: {
+    force?: boolean;
+    now?: Date;
+    fetchFn?: typeof fetch;
+  }): Promise<TaxMilRateSnapshot> {
+    const force = options?.force ?? false;
+    const now = options?.now ?? new Date();
+    const fetchFn = options?.fetchFn ?? globalThis.fetch?.bind(globalThis);
+
+    if (!force && this.hasFreshOfficialRate()) {
+      this.status = 'ready';
+      this.retryAt = null;
+      this.lastError = null;
+      this.persist();
+      return this.snapshot();
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      this.status = 'offline';
+      this.lastError = 'offline';
+      this.persist();
+      return this.snapshot();
+    }
+
+    if (!fetchFn) {
+      this.status = 'source-unavailable';
+      this.lastError = 'fetch-unavailable';
+      this.persist();
+      return this.snapshot();
+    }
+
+    this.status = 'updating';
+    this.lastError = null;
+    this.persist();
+
+    try {
+      const controller =
+        typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller
+        ? setTimeout(() => controller.abort(), 12_000)
+        : null;
+
+      const response = await fetchFn(TaxMilCurrencyConverter.OFFICIAL_ENDPOINT, {
+        cache: 'no-store',
+        signal: controller?.signal,
+      });
+
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      if (!response.ok) {
+        throw new Error(`http-${response.status}`);
+      }
+
+      const payload = (await response.json()) as TaxMilOfficialRatePayload;
+      const parsed = TaxMilCurrencyConverter.parseOfficialResponse(payload);
+
+      if (!parsed) {
+        throw new Error('malformed-payload');
+      }
+
+      this.rate = parsed.rate;
+      this.source = 'official';
+      this.status = 'ready';
+      this.sourceDate = parsed.sourceDate;
+      this.lastSyncedAt = now.toISOString();
+      this.lastError = null;
+      this.retryAt = null;
+
+      const day = (parsed.sourceDate ?? this.lastSyncedAt).slice(0, 10);
+      this.pushHistory(day, parsed.rate, 'official', this.lastSyncedAt);
+      this.persist();
+
+      return this.snapshot();
+    } catch (error) {
+      const offlineNow =
+        typeof navigator !== 'undefined' && navigator.onLine === false;
+      this.status = offlineNow ? 'offline' : 'source-unavailable';
+
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        this.lastError = 'timeout';
+      } else if (error instanceof Error) {
+        this.lastError = error.message || 'source-unavailable';
+      } else {
+        this.lastError = 'source-unavailable';
+      }
+
+      this.persist();
+      return this.snapshot();
+    }
+  }
+
+  static parseOfficialResponse(
+    payload: TaxMilOfficialRatePayload,
+  ): { rate: number; sourceDate: string | null } | null {
+    const rateCandidates = [
+      payload.precioPromedio,
+      payload.precioXHora,
+      payload.precioCierre,
+      payload.precioApertura,
+    ];
+
+    let parsedRate: number | null = null;
+    for (const candidate of rateCandidates) {
+      parsedRate = this.parseNumeric(candidate);
+      if (parsedRate !== null && parsedRate > 0) {
+        break;
+      }
+    }
+
+    if (!parsedRate || parsedRate <= 0) {
+      return null;
+    }
+
+    return {
+      rate: Math.max(1, Math.round(parsedRate)),
+      sourceDate: this.parseSourceDate(payload.fecha, payload.hora),
+    };
+  }
+
+  private static parseNumeric(input: unknown): number | null {
+    if (typeof input === 'number' && Number.isFinite(input)) {
+      return input;
+    }
+
+    if (typeof input === 'string') {
+      const normalized = input
+        .trim()
+        .replaceAll(/\s/g, '')
+        .replaceAll(',', '.');
+
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
+  private static parseSourceDate(fechaRaw: unknown, horaRaw: unknown): string | null {
+    if (typeof fechaRaw !== 'string') {
+      return null;
+    }
+
+    const fecha = fechaRaw.trim();
+    if (!/^\d{8}$/.test(fecha)) {
+      return null;
+    }
+
+    const yyyy = fecha.slice(0, 4);
+    const mm = fecha.slice(4, 6);
+    const dd = fecha.slice(6, 8);
+
+    const hourCandidate =
+      typeof horaRaw === 'string' && /^\d{2}:\d{2}:\d{2}$/.test(horaRaw.trim())
+        ? horaRaw.trim()
+        : '00:00:00';
+
+    const iso = `${yyyy}-${mm}-${dd}T${hourCandidate}-05:00`;
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+
+    return parsed.toISOString();
+  }
+
+  private pushHistory(
+    date: string,
+    rate: number,
+    source: TaxMilRateSource,
+    syncedAt: string,
+  ): void {
+    const day = date.slice(0, 10);
+    const entry: TaxMilRateHistoryEntry = {
+      date: day,
+      rate: Math.max(1, Math.round(rate)),
+      source,
+      syncedAt,
+    };
+
+    const existingIndex = this.history.findIndex((item) => item.date === day);
+    if (existingIndex >= 0) {
+      this.history[existingIndex] = entry;
+    } else {
+      this.history.push(entry);
+    }
+
+    this.history = this.history
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-TaxMilCurrencyConverter.MAX_HISTORY_DAYS);
   }
 
   private load(): void {
     try {
-      const raw = localStorage.getItem(TaxMilCurrencyConverter.STORAGE_KEY);
-      if (raw) this.rate = Number(raw);
+      const rawSnapshot = localStorage.getItem(
+        TaxMilCurrencyConverter.SNAPSHOT_STORAGE_KEY,
+      );
+      if (rawSnapshot) {
+        const parsed = JSON.parse(rawSnapshot) as Partial<TaxMilRateSnapshot>;
+        if (typeof parsed.rate === 'number' && parsed.rate > 0) {
+          this.rate = Math.round(parsed.rate);
+        }
+        if (parsed.source === 'official' || parsed.source === 'manual') {
+          this.source = parsed.source;
+        }
+        if (
+          parsed.status === 'idle' ||
+          parsed.status === 'updating' ||
+          parsed.status === 'ready' ||
+          parsed.status === 'offline' ||
+          parsed.status === 'source-unavailable' ||
+          parsed.status === 'retrying'
+        ) {
+          this.status = parsed.status;
+        }
+        this.sourceDate = parsed.sourceDate ?? null;
+        this.lastSyncedAt = parsed.lastSyncedAt ?? null;
+        this.lastError = parsed.lastError ?? null;
+        this.retryAt = parsed.retryAt ?? null;
+      } else {
+        const legacy = localStorage.getItem(TaxMilCurrencyConverter.LEGACY_RATE_KEY);
+        if (legacy) {
+          const legacyRate = Number(legacy);
+          if (Number.isFinite(legacyRate) && legacyRate > 0) {
+            this.rate = Math.round(legacyRate);
+          }
+        }
+      }
+
+      const rawHistory = localStorage.getItem(
+        TaxMilCurrencyConverter.HISTORY_STORAGE_KEY,
+      );
+      if (rawHistory) {
+        const parsedHistory = JSON.parse(rawHistory) as TaxMilRateHistoryEntry[];
+        this.history = parsedHistory
+          .filter(
+            (entry) =>
+              typeof entry?.date === 'string' &&
+              typeof entry?.rate === 'number' &&
+              (entry?.source === 'manual' || entry?.source === 'official') &&
+              typeof entry?.syncedAt === 'string',
+          )
+          .map((entry) => ({
+            ...entry,
+            rate: Math.max(1, Math.round(entry.rate)),
+            date: entry.date.slice(0, 10),
+          }))
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .slice(-TaxMilCurrencyConverter.MAX_HISTORY_DAYS);
+      }
     } catch {
       /* noop */
     }
@@ -724,6 +1218,26 @@ export class TaxMilCurrencyConverter {
       localStorage.setItem(
         TaxMilCurrencyConverter.STORAGE_KEY,
         String(this.rate),
+      );
+
+      const snapshot: TaxMilRateSnapshot = {
+        rate: this.rate,
+        source: this.source,
+        status: this.status,
+        sourceDate: this.sourceDate,
+        lastSyncedAt: this.lastSyncedAt,
+        lastError: this.lastError,
+        retryAt: this.retryAt,
+        history: [],
+      };
+
+      localStorage.setItem(
+        TaxMilCurrencyConverter.SNAPSHOT_STORAGE_KEY,
+        JSON.stringify(snapshot),
+      );
+      localStorage.setItem(
+        TaxMilCurrencyConverter.HISTORY_STORAGE_KEY,
+        JSON.stringify(this.history),
       );
     } catch {
       /* noop */
@@ -744,7 +1258,10 @@ export class TaxMilThemeStore {
   }
 
   get resolved(): 'dark' | 'light' {
-    if (this.preference !== 'auto') return this.preference;
+    if (this.preference !== 'auto') {
+      return this.preference;
+    }
+
     return globalThis.window !== undefined &&
       globalThis.matchMedia('(prefers-color-scheme: light)').matches
       ? 'light'
@@ -763,8 +1280,9 @@ export class TaxMilThemeStore {
       const raw = localStorage.getItem(
         TaxMilThemeStore.STORAGE_KEY,
       ) as TaxMilTheme | null;
-      if (raw === 'dark' || raw === 'light' || raw === 'auto')
+      if (raw === 'dark' || raw === 'light' || raw === 'auto') {
         this.preference = raw;
+      }
     } catch {
       /* noop */
     }
@@ -854,6 +1372,19 @@ const TRANSLATIONS: Record<TaxMilLang, Record<string, string>> = {
     'currency.rate': 'Tasa',
     'currency.approx': '(aproximado)',
     'currency.placeholder': 'Tasa COP/USD',
+    'currency.refresh': 'Actualizar TRM',
+    'currency.source.official': 'Fuente: Banco de la República',
+    'currency.source.manual': 'Fuente: tasa manual',
+    'currency.refDate': 'Fecha TRM: {date}',
+    'currency.syncedAt': 'Actualizada: {date}',
+    'currency.variation': 'Variación diaria: {delta} COP ({pct}%)',
+    'currency.variation.none': 'Sin variación diaria disponible todavía',
+    'currency.manual': 'Ajuste manual',
+    'currency.error.offline': 'Sin internet: usando la última TRM guardada localmente.',
+    'currency.error.source': 'Fuente oficial no disponible por ahora: usando TRM local.',
+    'currency.retry': 'Reintento automático en {seconds}s',
+    'currency.status.updating': 'Actualizando TRM oficial...',
+    'currency.status.ready': 'TRM lista para conversión',
     'pro.title': 'Panel profesional',
     'pro.monthly': 'Impuesto pagado este mes',
     'pro.savings': 'Ahorro potencial si fuera exenta',
@@ -952,6 +1483,19 @@ const TRANSLATIONS: Record<TaxMilLang, Record<string, string>> = {
     'currency.rate': 'Rate',
     'currency.approx': '(approximate)',
     'currency.placeholder': 'COP/USD rate',
+    'currency.refresh': 'Refresh TRM',
+    'currency.source.official': 'Source: Banco de la República',
+    'currency.source.manual': 'Source: manual rate',
+    'currency.refDate': 'TRM date: {date}',
+    'currency.syncedAt': 'Updated: {date}',
+    'currency.variation': 'Daily variation: {delta} COP ({pct}%)',
+    'currency.variation.none': 'No daily variation available yet',
+    'currency.manual': 'Manual override',
+    'currency.error.offline': 'Offline: using last TRM saved locally.',
+    'currency.error.source': 'Official source is unavailable right now: using local TRM.',
+    'currency.retry': 'Automatic retry in {seconds}s',
+    'currency.status.updating': 'Refreshing official TRM...',
+    'currency.status.ready': 'TRM ready for conversion',
     'pro.title': 'Professional panel',
     'pro.monthly': 'Tax paid this month',
     'pro.savings': 'Potential savings if exempt',

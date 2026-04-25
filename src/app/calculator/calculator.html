@@ -726,15 +726,53 @@
         <div class="panel-content">
           <div class="currency-row">
             <span>{{ t('currency.rate') }}:</span>
+            <strong>{{ currencyState().rate.toLocaleString('es-CO') }}</strong>
+            <button
+              type="button"
+              class="action-pill"
+              (click)="refreshCurrencyNow()"
+            >
+              🔄 {{ t('currency.refresh') }}
+            </button>
+          </div>
+
+          <div class="currency-meta">
+            <span class="currency-source">{{ currencySourceLabel() }}</span>
+
+            @if (currencyReferenceDate(); as dateRef) {
+            <span>{{ t('currency.refDate', { date: dateRef }) }}</span>
+            }
+
+            @if (currencySyncedAt(); as syncedAt) {
+            <span>{{ t('currency.syncedAt', { date: syncedAt }) }}</span>
+            }
+
+            <span>{{ currencyVariationLabel() }}</span>
+            <span>{{ currencyStatusLabel() }}</span>
+          </div>
+
+          @if (currencyErrorLabel(); as currencyError) {
+          <p class="currency-error">{{ currencyError }}</p>
+          }
+
+          @if (retryCountdown() > 0) {
+          <p class="currency-retry">
+            {{ t('currency.retry', { seconds: retryCountdown().toString() }) }}
+          </p>
+          }
+
+          <div class="currency-row currency-row-manual">
+            <span>{{ t('currency.manual') }}:</span>
             <input
               type="text"
               inputmode="numeric"
               class="rate-input"
-              [value]="currencyConverter.rate.toLocaleString('es-CO')"
+              [value]="currencyState().rate.toLocaleString('es-CO')"
               (input)="onRateInput($event)"
             />
             <span class="text-muted">{{ t('currency.approx') }}</span>
           </div>
+
           @if (amount() > 0) {
           <div class="currency-result">
             <span>{{ formatCOP(primaryAmount()) }}</span>

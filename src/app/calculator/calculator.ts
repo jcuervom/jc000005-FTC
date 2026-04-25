@@ -5,6 +5,7 @@ import {
   ElementRef,
   inject,
   OnInit,
+  OnDestroy,
 } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import {
@@ -23,6 +24,7 @@ import {
   type TaxMilMonthlyAggregate,
   type TaxMilBatchSummary,
   type TaxMilBudgetUsage,
+  type TaxMilRateSnapshot,
 } from './tax-mil.engine';
 
 type SummaryTone = 'default' | 'tax' | 'net';
@@ -48,7 +50,7 @@ interface HeaderPill<TValue = string> {
   templateUrl: './calculator.html',
   styleUrl: './calculator.scss',
 })
-export class Calculator implements OnInit {
+export class Calculator implements OnInit, OnDestroy {
   private readonly engine = new TaxMilCalculatorEngine();
   private readonly elRef = inject(ElementRef);
 
@@ -291,6 +293,28 @@ export class Calculator implements OnInit {
   editingNoteText = signal('');
   themeResolved = signal(this.themeStore.resolved);
   langSignal = signal(this.i18n.lang);
+  currencyState = signal<TaxMilRateSnapshot>(this.currencyConverter.snapshot());
+  retryCountdown = signal(0);
+  isOnline = signal(this.readOnlineStatus());
+
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryTicker: ReturnType<typeof setInterval> | null = null;
+  private readonly retryIntervalMs = 30_000;
+
+  private readonly onlineHandler = () => {
+    this.isOnline.set(true);
+    this.clearRetryTimers();
+    this.currencyConverter.clearRetryState();
+    this.syncCurrencyState();
+    void this.refreshOfficialRate(true);
+  };
+
+  private readonly offlineHandler = () => {
+    this.isOnline.set(false);
+    this.currencyConverter.markOfflineState();
+    this.syncCurrencyState();
+    this.scheduleAutoRetry();
+  };
 
   // ─── Computed ──────────────────────────────────────
   historyEntries = computed(() => {
@@ -342,11 +366,81 @@ export class Calculator implements OnInit {
 
   exemptionSimulation = computed(() => this.historyStore.simulateExemption());
 
-  usdEquivalent = computed(() =>
-    this.amount() > 0
+  usdEquivalent = computed(() => {
+    this.currencyState();
+    return this.amount() > 0
       ? this.currencyConverter.formatUSD(this.primaryAmount())
-      : '—',
+      : '—';
+  });
+
+  currencySourceLabel = computed(() =>
+    this.currencyState().source === 'official'
+      ? this.t('currency.source.official')
+      : this.t('currency.source.manual'),
   );
+
+  currencyReferenceDate = computed(() => {
+    const snapshot = this.currencyState();
+    const rawDate = snapshot.sourceDate ?? snapshot.lastSyncedAt;
+    if (!rawDate) {
+      return null;
+    }
+
+    return new Date(rawDate).toLocaleString('es-CO');
+  });
+
+  currencySyncedAt = computed(() => {
+    const rawDate = this.currencyState().lastSyncedAt;
+    if (!rawDate) {
+      return null;
+    }
+
+    return new Date(rawDate).toLocaleString('es-CO');
+  });
+
+  currencyVariation = computed(() => this.currencyConverter.dailyVariation());
+
+  currencyVariationPercent = computed(() =>
+    this.currencyConverter.dailyVariationPercent(),
+  );
+
+  currencyVariationLabel = computed(() => {
+    const delta = this.currencyVariation();
+    const pct = this.currencyVariationPercent();
+
+    if (delta === null || pct === null) {
+      return this.t('currency.variation.none');
+    }
+
+    const signedDelta = `${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString('es-CO')}`;
+    const signedPct = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}`;
+    return this.t('currency.variation', {
+      delta: signedDelta,
+      pct: signedPct,
+    });
+  });
+
+  currencyStatusLabel = computed(() => {
+    const status = this.currencyState().status;
+    if (status === 'updating') {
+      return this.t('currency.status.updating');
+    }
+
+    return this.t('currency.status.ready');
+  });
+
+  currencyErrorLabel = computed(() => {
+    const status = this.currencyState().status;
+    if (status === 'offline') {
+      return this.t('currency.error.offline');
+    }
+
+    if (status === 'source-unavailable' || status === 'retrying') {
+      return this.t('currency.error.source');
+    }
+
+    return null;
+  });
 
   // ─── i18n helper ───────────────────────────────────
   t(key: string, params?: Record<string, string>): string {
@@ -447,6 +541,23 @@ export class Calculator implements OnInit {
 
   ngOnInit(): void {
     this.applyTheme();
+
+    this.syncCurrencyState();
+    if (globalThis.window !== undefined) {
+      globalThis.addEventListener('online', this.onlineHandler);
+      globalThis.addEventListener('offline', this.offlineHandler);
+    }
+
+    void this.refreshOfficialRate(false);
+  }
+
+  ngOnDestroy(): void {
+    if (globalThis.window !== undefined) {
+      globalThis.removeEventListener('online', this.onlineHandler);
+      globalThis.removeEventListener('offline', this.offlineHandler);
+    }
+
+    this.clearRetryTimers();
   }
 
   // ─── Language ──────────────────────────────────────
@@ -491,7 +602,14 @@ export class Calculator implements OnInit {
     );
     if (digits) {
       this.currencyConverter.setRate(Number(digits));
+      this.currencyConverter.clearRetryState();
+      this.clearRetryTimers();
+      this.syncCurrencyState();
     }
+  }
+
+  refreshCurrencyNow(): void {
+    void this.refreshOfficialRate(true);
   }
 
   // ─── Exports ───────────────────────────────────────
@@ -501,20 +619,19 @@ export class Calculator implements OnInit {
   }
 
   exportPDF(): void {
-    const html = TaxMilExportBuilder.generatePDFContent(
+    if (this.amount() <= 0) {
+      return;
+    }
+
+    const data = TaxMilExportBuilder.generatePDFData(
       this.calculationMode(),
       this.amount(),
       this.result(),
       this.isExempt(),
       this.engine,
     );
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.open();
-    printWindow.document.writeln(html);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+
+    this.downloadFile(data, 'taxmil-summary.pdf', 'application/pdf');
   }
 
   shareResult(): void {
@@ -544,16 +661,85 @@ export class Calculator implements OnInit {
   }
 
   private downloadFile(
-    content: string,
+    content: string | Uint8Array,
     filename: string,
     mimeType: string,
   ): void {
-    const blob = new Blob([content], { type: mimeType });
+    const data =
+      typeof content === 'string' ? content : new Uint8Array(content);
+    const blob = new Blob([data], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  private syncCurrencyState(): void {
+    this.currencyState.set(this.currencyConverter.snapshot());
+  }
+
+  private async refreshOfficialRate(force: boolean): Promise<void> {
+    await this.currencyConverter.refreshOfficialRate({ force });
+    this.syncCurrencyState();
+
+    const status = this.currencyState().status;
+    if (status === 'offline' || status === 'source-unavailable') {
+      this.scheduleAutoRetry();
+      return;
+    }
+
+    this.clearRetryTimers();
+  }
+
+  private scheduleAutoRetry(): void {
+    if (this.retryTimer) {
+      return;
+    }
+
+    const retryAt = new Date(Date.now() + this.retryIntervalMs);
+    this.currencyConverter.setRetryState(retryAt.toISOString());
+    this.syncCurrencyState();
+
+    this.retryCountdown.set(Math.ceil(this.retryIntervalMs / 1000));
+    this.retryTicker = setInterval(() => {
+      const secondsLeft = Math.max(
+        0,
+        Math.ceil((retryAt.getTime() - Date.now()) / 1000),
+      );
+      this.retryCountdown.set(secondsLeft);
+      if (secondsLeft <= 0 && this.retryTicker) {
+        clearInterval(this.retryTicker);
+        this.retryTicker = null;
+      }
+    }, 1000);
+
+    this.retryTimer = setTimeout(async () => {
+      this.retryTimer = null;
+      await this.refreshOfficialRate(true);
+    }, this.retryIntervalMs);
+  }
+
+  private clearRetryTimers(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+
+    if (this.retryTicker) {
+      clearInterval(this.retryTicker);
+      this.retryTicker = null;
+    }
+
+    this.retryCountdown.set(0);
+  }
+
+  private readOnlineStatus(): boolean {
+    if (typeof navigator === 'undefined') {
+      return true;
+    }
+
+    return navigator.onLine;
   }
 }
